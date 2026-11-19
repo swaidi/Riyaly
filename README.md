@@ -56,6 +56,13 @@ Please open an [issue](https://github.com/swaidi/Riyaly/issues) for problems or 
 message is read wrongly, paste the message with **names, amounts and card digits replaced**
 (keep its wording and layout, which is what matters).
 
+## License
+
+Free for **individuals** for personal, non-commercial use. Use by any **organization** (company,
+small business, government body, charity or school), commercial use, changed versions and reuse of
+the code need written approval and may involve fees. See [LICENSE.md](LICENSE.md).
+To ask, open an [issue](https://github.com/swaidi/Riyaly/issues) or email dev.oasis006@passmail.net.
+
 ## Build
 
 Every push to `main` runs `.github/workflows/release.yml`: it runs the message-reading tests,
