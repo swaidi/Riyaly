@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand">#1F6F50</color>
+    <color name="brand_dark">#0E4A34</color>
+    <color name="brand_gold">#D4A73C</color>
+
+    <style name="Theme.Riyaly" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand</item>
+        <item name="colorSecondary">@color/brand_gold</item>
+    </style>
+</resources>

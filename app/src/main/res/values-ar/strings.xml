@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ريالي</string>
+
+    <string name="tab_dashboard">اللوحة</string>
+    <string name="tab_transactions">العمليات</string>
+    <string name="tab_alerts">التنبيهات</string>
+    <string name="tab_family">العائلة</string>
+    <string name="tab_settings">الإعدادات</string>
+
+    <string name="cancel">إلغاء</string>
+    <string name="save">حفظ</string>
+    <string name="saved">تم الحفظ</string>
+    <string name="delete">حذف</string>
+    <string name="edit">تعديل</string>
+    <string name="add">إضافة</string>
+    <string name="close">إغلاق</string>
+    <string name="clear">مسح</string>
+    <string name="search">بحث</string>
+    <string name="register">تسجيل</string>
+    <string name="grant">السماح بالوصول</string>
+    <string name="set">مُعيّنة</string>
+    <string name="not_set">غير مُعيّنة</string>
+    <string name="not_chosen">لم يُحدَّد</string>
+    <string name="never">لم يتم</string>
+    <string name="period">الفترة</string>
+
+    <string name="ch_txn">العمليات</string>
+    <string name="ch_alert">العمليات المشبوهة</string>
+    <string name="alert_prefix">يرجى التحقق:</string>
+    <string name="btn_confirmed_ok">تم التأكد</string>
+    <string name="btn_check_member">التحقق مع الشخص</string>
+    <string name="at_merchant">لدى %1$s</string>
+    <string name="unidentified">غير معروف</string>
+    <string name="unidentified_card">غير معروف (بطاقة %1$s)</string>
+    <string name="check_who">تحقق: %1$s</string>
+    <string name="declined">مرفوضة</string>
+    <string name="check_message">السلام عليكم، هل قمت بهذه العملية؟\n\nالمبلغ: %1$s\nالتاجر: %2$s\nالوقت: %3$s\nآخر أرقام البطاقة: %4$s</string>
+
+    <string name="setup_permissions_title">السماح بالوصول إلى الرسائل والإشعارات</string>
+    <string name="setup_permissions_body">يقرأ ريالي رسائل البنوك المحددة فقط، وتبقى جميع البيانات على هذا الجهاز.</string>
+    <string name="setup_cards_title">سجّل بطاقات العائلة</string>
+    <string name="setup_cards_body">أضف كل فرد من العائلة وآخر أربعة أرقام من بطاقته، ليظهر اسمه تلقائيًا مع كل عملية.</string>
+
+    <string name="p_this_month">هذا الشهر</string>
+    <string name="p_3_months">3 أشهر</string>
+    <string name="p_12_months">12 شهرًا</string>
+    <string name="all_members">الكل</string>
+    <string name="t_total">إجمالي الصرف</string>
+    <string name="t_count">العمليات</string>
+    <string name="t_alerts">تنبيهات مفتوحة</string>
+    <string name="no_data_yet">لا يوجد صرف مسجل لهذه الفترة بعد. تظهر رسائل البنك الجديدة هنا تلقائيًا، ويمكنك استيراد الرسائل السابقة من الإعدادات.</string>
+    <string name="d_by_member">الصرف حسب الفرد</string>
+    <string name="d_trend">الاتجاه الشهري</string>
+    <string name="d_top_merchants">أكثر التجار</string>
+    <string name="d_merchant_hint">المبلغ · عدد الزيارات. اضغط على الشريط لعرض العمليات.</string>
+    <string name="d_categories">الصرف حسب الفئة</string>
+    <string name="d_when">أوقات الشراء</string>
+    <string name="d_when_hint">يوم الأسبوع × الساعة. اللون الأغمق يعني مشتريات أكثر. اضغط على الخانة لعرضها.</string>
+    <string name="d_alerts">ملخص التنبيهات</string>
+    <string name="d_alerts_line">مفتوحة: %1$d   ·   قيد التحقق: %2$d   ·   مؤكدة: %3$d</string>
+    <string name="open_alerts">فتح التنبيهات</string>
+    <string-array name="days_short">
+        <item>أحد</item>
+        <item>إثنين</item>
+        <item>ثلاثاء</item>
+        <item>أربعاء</item>
+        <item>خميس</item>
+        <item>جمعة</item>
+        <item>سبت</item>
+    </string-array>
+
+    <string name="cat_food_delivery">توصيل الطعام</string>
+    <string name="cat_restaurants">مطاعم</string>
+    <string name="cat_cafes">مقاهٍ</string>
+    <string name="cat_groceries">بقالة وتموينات</string>
+    <string name="cat_fuel">وقود</string>
+    <string name="cat_shopping">تسوق</string>
+    <string name="cat_online">مشتريات إلكترونية</string>
+    <string name="cat_pharmacy">صيدليات</string>
+    <string name="cat_telecom">اتصالات</string>
+    <string name="cat_transport">نقل وسفر</string>
+    <string name="cat_bills">فواتير وخدمات حكومية</string>
+    <string name="cat_other">أخرى</string>
+
+    <string name="r_unknown_card">بطاقة أو حساب غير مسجل</string>
+    <string name="r_ambiguous">أكثر من بطاقة مسجلة في الرسالة</string>
+    <string name="r_large_amount">مبلغ كبير</string>
+    <string name="r_unusual_amount">مبلغ غير معتاد لهذا الشخص</string>
+    <string name="r_new_merchant">تاجر جديد لهذا الشخص</string>
+    <string name="r_unusual_hour">وقت غير معتاد لهذا الشخص</string>
+    <string name="r_quiet_hours">شراء في وقت متأخر من الليل</string>
+    <string name="r_rapid">عدة عمليات خلال دقائق</string>
+    <string name="r_duplicate">احتمال خصم مكرر</string>
+    <string name="r_foreign">عملة أجنبية</string>
+    <string name="r_other_city">خارج مدينتك</string>
+    <string name="r_watch">تاجر أو كلمة من قائمة المراقبة</string>
+    <string name="r_far">التاجر بعيد عن المنزل</string>
+    <string name="r_declined">عملية مرفوضة</string>
+
+    <string name="st_choose">اختر الشخص</string>
+    <string name="st_open">بحاجة للتحقق</string>
+    <string name="st_checking">قيد التحقق مع الشخص</string>
+    <string name="st_confirmed">تم التأكد</string>
+    <string name="st_normal">طبيعية</string>
+
+    <string name="search_hint">ابحث عن تاجر أو اسم أو رسالة</string>
+    <string name="filtered_by">المعروض: %1$s</string>
+    <string name="no_transactions">لا توجد عمليات مطابقة.</string>
+    <string name="list_total">%1$d عملية · الصرف %2$s</string>
+    <string name="show_more">عرض المزيد</string>
+    <string name="choose_person">اختر الشخص</string>
+    <string name="change_person">تغيير الشخص</string>
+    <string name="change_category">تغيير فئة التاجر</string>
+    <string name="category_for">فئة %1$s</string>
+    <string name="delete_txn">حذف هذه العملية</string>
+    <string name="delete_txn_q">تُحذف العملية من ريالي فقط، وتبقى الرسالة في الرسائل.</string>
+    <string name="add_member_first">أضف فردًا من العائلة أولًا.</string>
+    <string name="register_card_q_title">تسجيل هذه البطاقة؟</string>
+    <string name="register_card_q">تسجيل البطاقة %1$s باسم %2$s لتُعرف عملياتها القادمة تلقائيًا؟</string>
+    <string name="no_alerts">لا توجد تنبيهات مفتوحة</string>
+    <string name="no_alerts_body">تظهر هنا العمليات المشبوهة أو غير المعروفة حتى تؤكدها.</string>
+    <string name="recently_confirmed">أُكدت مؤخرًا</string>
+
+    <string name="x_member">الفرد</string>
+    <string name="x_members">الأفراد</string>
+    <string name="x_amount">المبلغ</string>
+    <string name="x_currency">العملة</string>
+    <string name="x_merchant">التاجر</string>
+    <string name="x_category">الفئة</string>
+    <string name="x_method">طريقة الدفع</string>
+    <string name="x_type">النوع</string>
+    <string name="x_date">التاريخ</string>
+    <string name="x_time">الوقت</string>
+    <string name="x_card">البطاقة</string>
+    <string name="x_balance">الرصيد بعد العملية</string>
+    <string name="x_city">المدينة</string>
+    <string name="x_distance">المسافة</string>
+    <string name="x_status">الحالة</string>
+    <string name="x_alerts">التنبيهات</string>
+    <string name="x_message">الرسالة الأصلية</string>
+    <string name="x_transactions">العمليات</string>
+    <string name="x_total_sar">الإجمالي (ريال)</string>
+    <string name="x_average_sar">المتوسط (ريال)</string>
+    <string name="x_largest_sar">الأكبر (ريال)</string>
+    <string name="x_total">الإجمالي</string>
+    <string name="x_sheet_summary">الملخص</string>
+    <string name="x_sheet_transactions">العمليات</string>
+    <string name="x_sheet_merchants">التجار</string>
+    <string name="km_from_home">%1$d كم من المنزل</string>
+
+    <string name="family_intro">سجّل كل فرد من العائلة وآخر أربعة أرقام من بطاقاته. يمكن أن يكون للشخص أكثر من بطاقة.</string>
+    <string name="add_member">إضافة فرد</string>
+    <string name="edit_member">تعديل الفرد</string>
+    <string name="member_name">الاسم أو اللقب</string>
+    <string name="member_name_helper">يظهر في الإشعارات</string>
+    <string name="delete_member">حذف الفرد</string>
+    <string name="delete_member_q">حذف %1$s وبطاقاته؟ تبقى العمليات السابقة لكنها تصبح غير معروفة.</string>
+    <string name="add_card">إضافة بطاقة</string>
+    <string name="add_card_for">إضافة بطاقة لـ %1$s</string>
+    <string name="card_digits">آخر أربعة أرقام</string>
+    <string name="card_digits_helper">كما تظهر في رسالة البنك</string>
+    <string name="card_digits_error">يرجى إدخال أربعة أرقام بالضبط.</string>
+    <string name="card_taken">البطاقة %1$s مسجلة باسم %2$s.</string>
+    <string name="remove_card">إزالة البطاقة</string>
+    <string name="remove_card_q">إزالة البطاقة %1$s من %2$s؟</string>
+    <string name="history_title">الرسائل السابقة</string>
+    <string name="history_body">استورد رسائل البنك الموجودة في صندوق الوارد (آخر 12 شهرًا) لبناء السجل والأنماط من اليوم الأول. العمليات المستوردة لا ترسل تنبيهات.</string>
+    <string name="import_inbox">الاستيراد من الرسائل</string>
+    <string name="importing">جارٍ الاستيراد…</string>
+    <string name="import_done">رسائل البنك المقروءة: %1$d. العمليات الجديدة المضافة: %2$d.</string>
+
+    <string name="s_banks">البنوك</string>
+    <string name="s_banks_intro">تُقرأ رسائل هذه الجهات فقط. اضغط على البنك لتعديله.</string>
+    <string name="senders_line">المرسلون: %1$s</string>
+    <string name="add_bank">إضافة بنك</string>
+    <string name="edit_bank">تعديل البنك</string>
+    <string name="bank_name">اسم البنك</string>
+    <string name="bank_senders">أسماء مرسل الرسائل</string>
+    <string name="bank_senders_helper">افصل بين الأسماء بفواصل، مثل AlRajhiBank</string>
+    <string name="bank_balance_words">الكلمات قبل الرصيد</string>
+    <string name="bank_merchant_words">الكلمات قبل اسم التاجر</string>
+    <string name="bank_merchant_helper">مثل لـ في \"لـHUNGERSTA\". افصل بينها بفواصل.</string>
+
+    <string name="s_notifications">الإشعارات</string>
+    <string name="notify_every">إشعار لكل عملية (التنبيهات تُرسل دائمًا)</string>
+
+    <string name="s_rules">فحوصات العمليات المشبوهة</string>
+    <string name="s_rules_intro">تبدأ الفحوصات الشخصية (المبلغ، التاجر، الوقت) بعد توفر سجل كافٍ للشخص.</string>
+    <string name="large_amount">المبلغ الكبير (ريال)</string>
+    <string name="quiet_start">آخر الليل من الساعة</string>
+    <string name="quiet_end">حتى الساعة</string>
+    <string name="far_km">بعيد عن المنزل (كم)</string>
+
+    <string name="s_watch">قائمة المراقبة</string>
+    <string name="s_watch_intro">أي عملية يحتوي تاجرها أو رسالتها على إحدى هذه الكلمات ترسل تنبيهًا، مثل ZARA أو NAKHEEL.</string>
+    <string name="watch_hint">اسم التاجر أو كلمة</string>
+
+    <string name="s_location">المنزل والموقع</string>
+    <string name="home_city_line">مدينة السكن: %1$s</string>
+    <string name="change_city">تغيير مدينة السكن</string>
+    <string name="home_location_line">موقع المنزل: %1$s</string>
+    <string name="home_not_set">غير محدد</string>
+    <string name="set_home">تحديد موقع المنزل</string>
+    <string name="home_search_hint">الحي أو العنوان</string>
+    <string name="home_search_helper">مثل \"النخيل\"، أو إحداثيات مثل 24.7136, 46.6753</string>
+    <string name="pick_place">اختر موقع منزلك</string>
+    <string name="no_results">لم يتم العثور على أماكن. جرّب اسمًا آخر.</string>
+    <string name="no_internet">تعذر الوصول إلى خدمة الخرائط. تحقق من الاتصال بالإنترنت.</string>
+    <string name="lookup_switch">البحث عن موقع التاجر عبر الإنترنت (OpenStreetMap)</string>
+    <string name="lookup_note">يُرسل اسم التاجر فقط إلى OpenStreetMap لتقدير بعده عن المنزل. الأسماء غير الواضحة تُعلَّم \"غير معروف\" ولا ترسل تنبيهًا.</string>
+
+    <string name="s_backup">النسخ الاحتياطي</string>
+    <string name="backup_intro">النسخ الاحتياطية مشفرة بكلمة المرور. اختر مجلدًا (مثل مجلد تزامنه خدمة التخزين السحابي) لحفظها خارج الجهاز، واستعدها على جهاز جديد بنفس كلمة المرور.</string>
+    <string name="backup_folder_line">المجلد: %1$s</string>
+    <string name="choose_folder">اختيار مجلد النسخ</string>
+    <string name="backup_password_line">كلمة المرور: %1$s</string>
+    <string name="set_password">تعيين كلمة مرور النسخ</string>
+    <string name="password">كلمة المرور</string>
+    <string name="password_again">أعد كتابة كلمة المرور</string>
+    <string name="password_warning">احتفظ بكلمة المرور في مكان آمن، فلا يمكن استعادة النسخة بدونها.</string>
+    <string name="password_short">استخدم 6 أحرف على الأقل.</string>
+    <string name="password_mismatch">كلمتا المرور غير متطابقتين.</string>
+    <string name="auto_backup">نسخ احتياطي تلقائي (يوميًا وبعد العمليات الجديدة)</string>
+    <string name="auto_backup_needs">اختر مجلدًا وعيّن كلمة مرور أولًا.</string>
+    <string name="last_backup">آخر نسخة: %1$s</string>
+    <string name="backup_now">نسخ احتياطي الآن</string>
+    <string name="backup_done">تم حفظ النسخة.</string>
+    <string name="backup_failed">فشل النسخ. اختر المجلد مرة أخرى وأعد المحاولة.</string>
+    <string name="restore">الاستعادة من نسخة</string>
+    <string name="restore_warning">الاستعادة تستبدل جميع بيانات ريالي ببيانات النسخة.</string>
+    <string name="restore_done">تمت الاستعادة.</string>
+    <string name="restore_failed">تعذرت الاستعادة. تحقق من الملف وكلمة المرور.</string>
+
+    <string name="s_report">تقرير Excel الشهري</string>
+    <string name="report_intro">ملخص لكل فرد، وجميع العمليات، والتجار للشهر الذي تختاره.</string>
+    <string name="export_excel">تصدير تقرير Excel</string>
+    <string name="report_done">تم حفظ التقرير.</string>
+    <string name="report_failed">تعذر إنشاء التقرير.</string>
+    <string name="share_report">مشاركة التقرير</string>
+
+    <string name="s_language">اللغة</string>
+    <string name="lang_system">لغة الجهاز</string>
+    <string name="lang_en">English</string>
+    <string name="lang_ar">العربية</string>
+    <string name="about">ريالي %1$s · البيانات تبقى على هذا الجهاز.</string>
+    <string name="use_my_location">استخدام موقعي الحالي</string>
+    <string name="choose_on_map">الاختيار من الخريطة</string>
+    <string name="search_name_coords">البحث باسم الحي أو الإحداثيات</string>
+    <string name="home_saved">تم حفظ موقع المنزل.</string>
+    <string name="location_denied">لم يتم السماح بالوصول إلى الموقع.</string>
+    <string name="getting_location">جارٍ تحديد موقعك… ابقَ في المنزل مع تشغيل الموقع.</string>
+    <string name="location_failed">تعذر تحديد الموقع. شغّل الموقع (GPS) وأعد المحاولة، أو اختر من الخريطة.</string>
+    <string name="current_location">الموقع الحالي</string>
+    <string name="chosen_on_map">من الخريطة</string>
+    <string name="map_hint">حرّك الخريطة وكبّرها حتى يكون الدبوس على منزلك.</string>
+    <string name="use_this_location">استخدام هذا الموقع</string>
+    <string name="map_attribution">بيانات الخريطة © مساهمو OpenStreetMap</string>
+
+    <string name="k_purchase">شراء</string>
+    <string name="k_withdrawal">سحب نقدي</string>
+    <string name="k_transfer_in">حوالة واردة</string>
+    <string name="k_transfer_out">حوالة صادرة</string>
+    <string name="k_refund">استرداد</string>
+    <string name="k_credit_in">إيداع</string>
+    <string name="k_bill">سداد فاتورة</string>
+    <string name="cat_cash">سحب نقدي</string>
+    <string name="from_party">من %1$s</string>
+    <string name="to_party">إلى %1$s</string>
+    <string name="balance_is">الرصيد %1$s</string>
+    <string name="country_is">الدولة: %1$s</string>
+    <string name="decline_reason">السبب: %1$s</string>
+    <string name="during_travel">أثناء السفر</string>
+    <string name="list_in">وارد %1$s</string>
+    <string name="list_out">حوالات صادرة %1$s</string>
+
+    <string name="r_large_withdrawal">سحب نقدي كبير</string>
+    <string name="r_monthly_limit">بلغت البطاقة حدها الشهري</string>
+    <string name="r_outside_dest">خارج وجهة السفر</string>
+    <string name="r_large_transfer">حوالة صادرة كبيرة</string>
+    <string name="r_new_recipient">حوالة إلى مستفيد جديد</string>
+
+    <string name="t_money_in">الوارد</string>
+    <string name="t_spending">الصرف</string>
+    <string name="t_transfers_out">الحوالات الصادرة</string>
+    <string name="d_by_card">حسب البطاقة أو الحساب</string>
+    <string name="d_by_card_hint">الصرف والحوالات الصادرة. اضغط على الشريط لعرض العمليات.</string>
+    <string name="d_in_out">الوارد والصادر شهريًا</string>
+    <string name="d_parties">المحوِّلون والمستفيدون</string>
+    <string name="d_parties_hint">+ وارد / − صادر (ريال). اضغط على الشريط لعرض الحوالات.</string>
+
+    <string name="x_kind">نوع العملية</string>
+    <string name="x_original">المبلغ الأصلي</string>
+    <string name="x_fees">الرسوم والضريبة</string>
+    <string name="x_from_to">من / إلى</string>
+    <string name="x_country">الدولة</string>
+    <string name="x_decline_reason">سبب الرفض</string>
+    <string name="x_travel">السفر</string>
+    <string name="x_cash_sar">السحب النقدي (ريال)</string>
+    <string name="x_money_in_sar">الوارد (ريال)</string>
+    <string name="x_transfers_out_sar">الحوالات الصادرة (ريال)</string>
+
+    <string name="kind_card">بطاقة</string>
+    <string name="kind_account">حساب</string>
+    <string name="card_label">الاسم (اختياري)</string>
+    <string name="card_label_helper">مثل "حساب الراتب" أو "فيزا"</string>
+    <string name="tap_card_hint">اضغط على البطاقة أو الحساب لتسميته أو تحديد حدوده أو تشغيل وضع السفر.</string>
+    <string name="until_date">حتى %1$s</string>
+    <string name="card_limits">الحدود</string>
+    <string name="card_limits_hint">اتركه فارغًا لاستخدام الحد العام (%1$d ريال) من الإعدادات.</string>
+    <string name="limit_single">حد العملية الواحدة (ريال)</string>
+    <string name="limit_withdrawal">حد السحب النقدي (ريال)</string>
+    <string name="limit_monthly">حد الصرف الشهري (ريال)</string>
+    <string name="travel_mode">وضع السفر</string>
+    <string name="travel_hint">أثناء السفر تتوقف تنبيهات العملة الأجنبية والمدينة الأخرى والبعد عن المنزل لهذه البطاقة، وتبقى بقية الفحوصات. عند تحديد وجهة، تُنبّه العمليات خارجها.</string>
+    <string name="travel_dates">من %1$s إلى %2$s</string>
+    <string name="travel_off">متوقف</string>
+    <string name="travel_choose_dates">اختيار تواريخ السفر</string>
+    <string name="travel_turn_off">إيقاف</string>
+    <string name="travel_dest">الوجهة (اختياري)</string>
+    <string name="travel_dest_helper">دولة أو مدينة، مثل USA أو UK أو جدة. افصل بينها بفواصل.</string>
+    <string name="travel_ended_title">انتهى وضع السفر</string>
+    <string name="travel_ended_body">عادت التنبيهات المعتادة لـ %1$s (%2$s).</string>
+
+    <string name="transfer_limit">الحوالة الصادرة الكبيرة (ريال)</string>
+    <string name="general_limits_hint">الحدود العامة، تُستخدم للبطاقات والحسابات التي ليس لها حدود خاصة.</string>
+
+    <string name="s_updates">تحديثات التطبيق</string>
+    <string name="current_version">الإصدار المثبت: %1$s</string>
+    <string name="update_token">رمز GitHub (اختياري)</string>
+    <string name="update_token_helper">نفس الرمز المستخدم في Obtainium</string>
+    <string name="update_token_saved">يوجد رمز محفوظ. أدخل رمزًا جديدًا فقط لاستبداله.</string>
+    <string name="save_token">حفظ الرمز</string>
+    <string name="check_updates">البحث عن تحديثات</string>
+    <string name="checking_updates">جارٍ البحث عن تحديثات…</string>
+    <string name="up_to_date">لديك أحدث إصدار.</string>
+    <string name="update_need_token">احفظ رمز GitHub أولًا.</string>
+    <string name="update_bad_token">رفض GitHub الرمز. تأكد أنه يستطيع قراءة مستودع Riyaly.</string>
+    <string name="update_available">الإصدار %1$s متاح</string>
+    <string name="update_install_q">تنزيله وتثبيته الآن؟ بياناتك تبقى كما هي.</string>
+    <string name="update_install">تثبيت</string>
+    <string name="update_allow_installs">اسمح لريالي بتثبيت التطبيقات، ثم اضغط تثبيت مرة أخرى.</string>
+    <string name="downloading_update">جارٍ تنزيل التحديث…</string>
+    <string name="update_failed">فشل التنزيل. يرجى المحاولة مرة أخرى.</string>
+    <string name="update_public_note">تأتي التحديثات من صفحة ريالي العامة على GitHub. لا حاجة لرمز؛ الرمز لنسخة خاصة فقط.</string>
+</resources>
