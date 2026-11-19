@@ -71,9 +71,32 @@ object Processor {
      *             false for messages imported from the inbox (stored quietly, alerts marked reviewed).
      * @return the stored transaction, or null when the SMS is not a bank transaction.
      */
+    /**
+     * A message's "shape" for "Not a transaction": the whole text with numbers replaced by #, so the same
+     * advertisement or notice with other numbers matches, but a purchase at another merchant does not.
+     */
+    fun signature(body: String): String {
+        val lines = Parser.normalize(body).lines().map { it.trim() }.filter { it.isNotEmpty() }
+        fun shape(l: String) = l.lowercase().replace(Regex("\\d+([.,]\\d+)*"), "#").replace(Regex("\\s+"), " ").trim()
+        return lines.joinToString(" | ") { shape(it) }.take(300)
+    }
+
+    fun isIgnored(ctx: Context, sender: String, body: String): Boolean =
+        isAdSender(sender) || Parser.isIgnorable(body) || signature(body) in Prefs(ctx).ignoredPatterns
+
+    /** "Not a transaction": remove it, and ignore messages shaped like it from now on. */
+    fun markNotTransaction(ctx: Context, t: Txn) {
+        val p = Prefs(ctx)
+        p.ignoredPatterns = p.ignoredPatterns + signature(t.body)
+        val db = Db.get(ctx)
+        val sig = signature(t.body)
+        db.txns().filter { signature(it.body) == sig }.forEach { db.deleteTxn(it.id); Notifier.cancel(ctx, it.id) }
+    }
+
     fun handle(ctx: Context, sender: String, body: String, ts: Long, live: Boolean): Txn? {
         val db = Db.get(ctx)
         val bank = db.bankForSender(sender) ?: return null
+        if (isIgnored(ctx, sender, body)) return null
         val h = hash(sender, body, ts)
         if (db.hashExists(h) || db.sameMessageExists(sender, body, ts)) return null
 
@@ -121,6 +144,8 @@ object Processor {
         val cards = db.cards()
         val banks = db.banks().associateBy { it.id }
         val cfg = configFor(ctx, db)
+        // Earlier versions recorded some one-time passwords and advertisements: remove them.
+        db.txns().filter { isIgnored(ctx, it.sender, it.body) }.forEach { db.deleteTxn(it.id) }
         val all = db.txns().sortedBy { it.ts }
         for (old in all) {
             val bank = old.bankId?.let { banks[it] }

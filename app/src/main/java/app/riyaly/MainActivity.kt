@@ -38,7 +38,7 @@ abstract class Screen(val a: MainActivity) {
 }
 
 /** Raise when the message reader changes, so stored messages are re-read once. */
-const val READER_VERSION = 2
+const val READER_VERSION = 3
 
 class MainActivity : AppCompatActivity() {
     lateinit var db: Db

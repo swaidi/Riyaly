@@ -109,6 +109,48 @@ object Parser {
     )
 
 
+    // ---------- Messages that are not transactions ----------
+
+    private val OTP_WORDS = listOf(
+        "otp", "one time password", "one-time password", "verification code", "passcode", "activation code",
+        "رمز التحقق", "كلمة المرور لمرة واحدة", "رمز التفعيل", "الرمز السري لمرة واحدة", "رمز لمرة واحدة", "لا تشارك الرمز",
+    )
+    private val PROMO_WORDS = listOf(
+        "offer", "cashback", "cash back", "t&c", "terms and conditions", "valid from", "valid until", "valid till",
+        "participate", "special offers", "our website", "promo", "limited time", "get up to", "discount",
+        // Arabic. Not "خصم": banks also use it for an amount deducted.
+        "عرض", "الشروط وال", "احصل على", "لفترة محدودة", "للمشاركة", "استرداد نقدي", "موقعنا", "تمتع", "اربح",
+    )
+
+    /** One-time passwords and advertisements: never recorded, even when they mention an amount. */
+    fun isIgnorable(rawBody: String): Boolean {
+        val l = normalize(rawBody).lowercase()
+        if (OTP_WORDS.any { Regex("(?<![a-z])" + Regex.escape(it) + "(?![a-z])").containsMatchIn(l) }) return true
+        return PROMO_WORDS.count { l.contains(it) } >= 2
+    }
+
+    private val MONTHS = listOf(
+        "january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december",
+        "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
+        "يناير", "فبراير", "مارس", "أبريل", "ابريل", "مايو", "يونيو", "يوليو", "أغسطس", "اغسطس", "سبتمبر", "أكتوبر", "اكتوبر", "نوفمبر", "ديسمبر",
+        "محرم", "صفر", "ربيع", "جمادى", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة",
+    )
+    private val MONTH_RE by lazy {
+        Regex("(?<![A-Za-z\u0600-\u06FF])(" + MONTHS.sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) } + ")(?![A-Za-z])", RegexOption.IGNORE_CASE)
+    }
+    private val YEAR = Regex("(?<!\\d)(19\\d{2}|20\\d{2}|14\\d{2})(?!\\d)")
+
+    /** Years written next to a month ("18 December 2026", "Nov 2026", "2026 نوفمبر"), so they are never read as a card. */
+    private fun yearSpans(body: String): List<IntRange> {
+        val out = mutableListOf<IntRange>()
+        for (m in MONTH_RE.findAll(body)) {
+            val from = (m.range.first - 10).coerceAtLeast(0)
+            val to = (m.range.last + 16).coerceAtMost(body.length)
+            for (y in YEAR.findAll(body.substring(from, to))) out += (from + y.range.first)..(from + y.range.last)
+        }
+        return out
+    }
+
     private val INVISIBLE = Regex("[\\u200B-\\u200F\\u202A-\\u202E\\u2066-\\u2069\\u061C\\uFEFF]")
 
     /** Arabic-Indic and Persian digits to ASCII; Arabic decimal/thousands marks to '.' and ','. */
@@ -143,6 +185,8 @@ object Parser {
     private val DATE = Regex("(?<!\\d)\\d{1,4}[/\\-.]\\d{1,2}[/\\-.]\\d{1,4}(?!\\d)")
     private val TIME = Regex("(?<!\\d)\\d{1,2}:\\d{2}(?::\\d{2})?(?!\\d)")
     private val FOUR = Regex("(?<![\\d.,])(\\d{4})(?![\\d]|[.,]\\d)")
+    private val THREE = Regex("(?<![\\d.,])(\\d{3})(?![\\d]|[.,]\\d)")
+    private val ENDING = Regex("(?<![\\d.,])(\\d{3,4})(?![\\d]|[.,]\\d)")
     private val FIELD = Regex("^\\s*([^:~\\d]{2,40}?)\\s*[:~]\\s*(.*)$")
     private val TO_LINE = Regex("^(?:لـ|ل|الى|إلى|to)\\s*:?\\s*(\\d{3,})(?:\\s*;\\s*(.*))?$", RegexOption.IGNORE_CASE)
     private val FROM_LINE = Regex("^(?:من|from)\\s*:?\\s*(\\d{3,})(?:\\s*;\\s*(.*))?$", RegexOption.IGNORE_CASE)
@@ -234,6 +278,7 @@ object Parser {
         balanceSpans.forEach { blank(it) }
         DATE.findAll(body).forEach { blank(it.range) }
         TIME.findAll(body).forEach { blank(it.range) }
+        yearSpans(body).forEach { blank(it) }
         val cleaned = String(work)
 
         // 4. Whose card/account? Transfers name both sides; take the user's side only.
@@ -244,8 +289,9 @@ object Parser {
         var counterName: String? = null
         val ownCandidates: List<String>
         if ((kind == Kind.TRANSFER_IN || kind == Kind.TRANSFER_OUT) && (to != null || from != null)) {
-            val toD = to?.groupValues?.get(1)?.takeLast(4)
-            val fromD = from?.groupValues?.get(1)?.takeLast(4)
+            fun ending(d: String?): String? = d?.let { x -> listOf(x.takeLast(4), x.takeLast(3)).firstOrNull { it in registeredCards } ?: x.takeLast(4) }
+            val toD = ending(to?.groupValues?.get(1))
+            val fromD = ending(from?.groupValues?.get(1))
             val incoming = when {
                 kind == Kind.TRANSFER_IN -> true
                 fromD != null && fromD in registeredCards -> false
@@ -258,9 +304,11 @@ object Parser {
             counterName = other?.groupValues?.get(2)?.trim()?.takeIf { it.isNotEmpty() }
             ownCandidates = listOfNotNull(own)
         } else {
-            val cardField = field(fs, "بطاقة", "البطاقة", "card")
-            val fromField = cardField?.let { FOUR.find(normalize(it))?.groupValues?.get(1) }
-            ownCandidates = (listOfNotNull(fromField) + FOUR.findAll(cleaned).map { it.groupValues[1] }).distinct()
+            val cardField = field(fs, "بطاقة", "البطاقة", "card", "by", "card no", "card number")
+            val fromField = cardField?.let { ENDING.find(normalize(it))?.groupValues?.get(1) }
+            // Registered 3-digit endings (some banks show "***001") count; other 3-digit numbers are ignored.
+            val threes = THREE.findAll(cleaned).map { it.groupValues[1] }.filter { it in registeredCards }
+            ownCandidates = (listOfNotNull(fromField) + FOUR.findAll(cleaned).map { it.groupValues[1] } + threes).distinct()
         }
         val matched = ownCandidates.filter { it in registeredCards }.distinct()
         val unknown = ownCandidates.filter { it !in registeredCards }.distinct()
@@ -284,7 +332,7 @@ object Parser {
 
         val isTransfer = kind == Kind.TRANSFER_IN || kind == Kind.TRANSFER_OUT
         return Result(
-            isTransaction = charged != null,
+            isTransaction = charged != null && !isIgnorable(body),
             kind = kind,
             amount = charged?.value,
             currency = currency,
@@ -351,7 +399,7 @@ object Parser {
     private fun looksLikeMoney(s: String) = curBefore.containsMatchIn(s) && s.length < 20
 
     private fun findMethod(body: String, fs: List<Pair<String, String>>, card: String?): String? {
-        field(fs, "بطاقة", "البطاقة", "card")?.let { v ->
+        field(fs, "بطاقة", "البطاقة", "card", "by")?.let { v ->
             v.substringAfter(';', "").trim().takeIf { it.any(Char::isLetter) }?.let { return it }
         }
         if (card == null) return null

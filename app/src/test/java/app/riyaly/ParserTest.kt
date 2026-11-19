@@ -187,4 +187,53 @@ class ParserTest {
         assertEquals("CA-AL OLAYA MAIN BR 2", r.merchant)
         assertEquals("سحب: صراف آلي", r.type)
     }
+
+    // ---------- Update 3: OTP, advertisements, SAB format, years, 3-digit endings (numbers replaced) ----------
+
+    @Test fun otpIsIgnored() {
+        val sms = "OTP: 4321\nOne Time Password to confirm your online transaction for SAB MADA (4455)\nMerchant: SHOP\nDate and Time: 2026-11-18 09:48:31\nAmount: SAR 1500.0"
+        assertTrue(Parser.isIgnorable(sms))
+        assertFalse(Parser.parse(sms, setOf("4455")).isTransaction)
+    }
+
+    @Test fun sabOnlinePurchase() {
+        val sms = "Online Purchase\nBy: ***4455;mada\nFrom: ***009\nAmount: SAR 1,500.00\nAt: SHOP NAME\nDate: 2026-11-18 09:48:47"
+        val r = Parser.parse(sms, setOf("4455"))
+        assertTrue(r.isTransaction)
+        assertEquals(Parser.Kind.PURCHASE, r.kind)
+        assertEquals(1500.0, r.amount!!, 0.001)
+        assertEquals(listOf("4455"), r.matchedCards)
+        assertEquals("mada", r.method)
+        assertEquals("SHOP NAME", r.merchant)
+    }
+
+    @Test fun threeDigitAccountEnding() {
+        val sms = "Online Purchase\nBy: ***4455;mada\nFrom: ***009\nAmount: SAR 20.00\nAt: SHOP NAME"
+        val r = Parser.parse(sms, setOf("009"))
+        assertEquals(listOf("009"), r.matchedCards)
+        // An unregistered 3-digit number is never reported as an unknown card.
+        assertFalse(Parser.parse("شراء بـSR 20\nعبر1234;مدى\nلـSHOP 777", setOf("1234")).unknownCards.contains("777"))
+    }
+
+    @Test fun advertisementIsIgnored() {
+        val sms = "Spend a minimum of SR 5000 using any of your Credit Cards and get SR 100 cashback. The offer is valid from 18 November until 18 December 2026. For T&Cs, please visit the Special Offers Page on our website. To participate, please send the code (AB1) to 500000"
+        assertTrue(Parser.isIgnorable(sms))
+        assertFalse(Parser.parse(sms, emptySet()).isTransaction)
+    }
+
+    @Test fun realDeductionIsNotAnAd() {
+        val sms = "تم خصم مبلغ SR 25 من بطاقتك 1234 لدى SHOP"
+        assertFalse(Parser.isIgnorable(sms))
+    }
+
+    @Test fun yearNextToMonthIsNotACard() {
+        val sms = "شراء بـSR 50\nعبر1234;مدى\nلـSHOP\n18 December 2026"
+        val r = Parser.parse(sms, setOf("1234", "2026"))
+        assertEquals(listOf("1234"), r.matchedCards)
+        assertTrue(r.unknownCards.isEmpty())
+        val ar = Parser.parse("شراء بـSR 50\nعبر1234;مدى\nلـSHOP\n18 نوفمبر 2026", setOf("1234"))
+        assertTrue(ar.unknownCards.isEmpty())
+        // A card that really ends in 2026 is still found where a card appears.
+        assertEquals(listOf("2026"), Parser.parse("شراء بـSR 50\nعبر2026;مدى\nلـSHOP", setOf("2026")).matchedCards)
+    }
 }

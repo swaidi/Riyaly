@@ -37,6 +37,20 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         root.addView(c.section(c.getString(R.string.history_title)))
         root.addView(c.card(c.muted(c.getString(R.string.history_body)), c.button(c.getString(R.string.import_inbox), outlined = true) { importInbox() }))
 
+        // ---------- Ignored messages ----------
+        root.addView(c.section(c.getString(R.string.s_ignored)))
+        val ignored = c.vbox()
+        ignored.addView(c.muted(c.getString(R.string.s_ignored_intro), 12f))
+        val patterns = p.ignoredPatterns
+        if (patterns.isEmpty()) ignored.addView(c.muted(c.getString(R.string.ignored_none)))
+        patterns.forEach { pat ->
+            val row = c.hbox()
+            row.add(c.text(pat.take(140), 14f), weight = 1f)
+            row.addView(c.textButton(c.getString(R.string.remove)) { p.ignoredPatterns = p.ignoredPatterns - pat; a.refresh() })
+            ignored.addView(row)
+        }
+        root.addView(c.card(ignored))
+
         // ---------- Notifications ----------
         root.addView(c.section(c.getString(R.string.s_notifications)))
         root.addView(c.switchRow(c.getString(R.string.notify_every), p.notifyEvery) { p.notifyEvery = it })

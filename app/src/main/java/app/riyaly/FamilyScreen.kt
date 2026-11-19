@@ -92,7 +92,7 @@ class FamilyScreen(a: MainActivity) : Screen(a) {
         c.dialog(c.getString(R.string.add_card_for, m.name)).setView(box)
             .setPositiveButton(R.string.save) { _, _ ->
                 val d = Parser.normalize(f.value)
-                if (!Regex("\\d{4}").matches(d)) { c.toast(c.getString(R.string.card_digits_error)); return@setPositiveButton }
+                if (!Regex("\\d{3,4}").matches(d)) { c.toast(c.getString(R.string.card_digits_error)); return@setPositiveButton }
                 val owner = a.db.cards().firstOrNull { it.last4 == d }
                 if (owner != null && owner.memberId != m.id) {
                     c.toast(c.getString(R.string.card_taken, d, a.db.member(owner.memberId)?.name ?: "?")); return@setPositiveButton

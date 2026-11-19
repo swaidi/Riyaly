@@ -198,9 +198,14 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
     fun deleteBank(id: Long) { writableDatabase.delete("banks", "id=?", arrayOf("$id")) }
 
     /** The bank whose sender list matches this SMS address (case-insensitive, ignoring spaces/dashes). */
+    /**
+     * The bank whose sender list matches this SMS address exactly (ignoring capitals, spaces, dashes and dots).
+     * Advertising senders, which in Saudi Arabia end in "-AD" (e.g. "SAB-Ad"), are never read.
+     */
     fun bankForSender(address: String): Bank? {
+        if (isAdSender(address)) return null
         val a = simplify(address)
-        return banks().firstOrNull { b -> b.senders.any { s -> simplify(s).let { it.isNotEmpty() && (a == it || a.contains(it)) } } }
+        return banks().firstOrNull { b -> b.senders.any { s -> simplify(s).let { it.isNotEmpty() && a == it } } }
     }
 
     private fun simplify(s: String) = s.lowercase().replace(Regex("[\\s\\-_.]"), "")
@@ -330,6 +335,8 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
         } finally { writableDatabase.endTransaction() }
     }
 }
+
+fun isAdSender(address: String): Boolean = Regex("[-_ .]ad$", RegexOption.IGNORE_CASE).containsMatchIn(address.trim())
 
 fun split(s: String?): List<String> = s?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
 

@@ -47,6 +47,11 @@ class Prefs(ctx: Context) {
         get() = sp.getString("update_token", null)
         set(v) = sp.edit().putString("update_token", v).apply()
 
+    /** Message patterns the user marked "Not a transaction", one per line. */
+    var ignoredPatterns: List<String>
+        get() = (sp.getString("ignored_patterns", "") ?: "").split("\n").filter { it.isNotBlank() }
+        set(v) = sp.edit().putString("ignored_patterns", v.distinct().joinToString("\n")).apply()
+
     var quietStart: Int
         get() = sp.getInt("quiet_start", 1)
         set(v) = sp.edit().putInt("quiet_start", v).apply()

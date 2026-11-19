@@ -43,8 +43,8 @@
     <!-- Setup -->
     <string name="setup_permissions_title">Allow SMS and notification access</string>
     <string name="setup_permissions_body">Riyaly reads only messages from the bank senders you list, and keeps everything on this phone.</string>
-    <string name="setup_cards_title">Register your family\'s cards</string>
-    <string name="setup_cards_body">Add each family member and the last four digits of his or her card. Transactions are then named automatically.</string>
+    <string name="setup_cards_title">Register your members\' cards</string>
+    <string name="setup_cards_body">Add each member and the last digits of his or her cards and accounts. Transactions are then named automatically.</string>
 
     <!-- Dashboard -->
     <string name="p_this_month">This month</string>
@@ -55,7 +55,7 @@
     <string name="t_count">Transactions</string>
     <string name="t_alerts">Open alerts</string>
     <string name="no_data_yet">No spending recorded for this period yet. New bank messages appear here automatically; you can also import earlier messages from Settings.</string>
-    <string name="d_by_member">Spending by family member</string>
+    <string name="d_by_member">Spending by member</string>
     <string name="d_trend">Monthly trend</string>
     <string name="d_top_merchants">Top merchants</string>
     <string name="d_merchant_hint">Amount · number of visits. Tap a bar to see the transactions.</string>
@@ -124,7 +124,7 @@
     <string name="category_for">Category for %1$s</string>
     <string name="delete_txn">Delete this transaction</string>
     <string name="delete_txn_q">The transaction is removed from Riyaly only. The SMS stays in your messages.</string>
-    <string name="add_member_first">Add a family member first.</string>
+    <string name="add_member_first">Add a member first.</string>
     <string name="register_card_q_title">Register this card?</string>
     <string name="register_card_q">Register card %1$s for %2$s, so future transactions are named automatically?</string>
     <string name="no_alerts">No open alerts</string>
@@ -159,18 +159,18 @@
     <string name="km_from_home">%1$d km from home</string>
 
     <!-- Family -->
-    <string name="family_intro">Register each family member and the last four digits of his or her cards. One person can have several cards.</string>
-    <string name="add_member">Add family member</string>
-    <string name="edit_member">Edit family member</string>
+    <string name="family_intro">Register each member and the last 3 or 4 digits of his or her cards and accounts. One person can have several.</string>
+    <string name="add_member">Add member</string>
+    <string name="edit_member">Edit member</string>
     <string name="member_name">Name or alias</string>
     <string name="member_name_helper">Shown in notifications, for example \"Family Member A\"</string>
-    <string name="delete_member">Delete family member</string>
+    <string name="delete_member">Delete member</string>
     <string name="delete_member_q">Delete %1$s and his or her cards? Past transactions stay, but become unidentified.</string>
     <string name="add_card">Add card</string>
     <string name="add_card_for">Add a card for %1$s</string>
-    <string name="card_digits">Last four digits</string>
+    <string name="card_digits">Last 3 or 4 digits</string>
     <string name="card_digits_helper">As shown in the bank message</string>
-    <string name="card_digits_error">Please enter exactly four digits.</string>
+    <string name="card_digits_error">Please enter 3 or 4 digits.</string>
     <string name="card_taken">Card %1$s is already registered for %2$s.</string>
     <string name="remove_card">Remove card</string>
     <string name="remove_card_q">Remove card %1$s from %2$s?</string>
@@ -355,4 +355,10 @@
     <string name="downloading_update">Downloading the update…</string>
     <string name="update_failed">The download failed. Please try again.</string>
     <string name="update_public_note">Updates come from the public Riyaly page on GitHub. No token is needed; a token is only for a private copy.</string>
+    <string name="not_txn">Not a transaction</string>
+    <string name="not_txn_q">Remove this message from Riyaly? Messages that start the same way will be ignored from now on. You can undo this in Settings › Ignored messages.</string>
+    <string name="remove">Remove</string>
+    <string name="s_ignored">Ignored messages</string>
+    <string name="s_ignored_intro">Messages that start like these are not recorded. Advertisements (senders ending in -AD) and one-time passwords are always ignored.</string>
+    <string name="ignored_none">None yet. Use “Not a transaction” on a wrongly recorded message.</string>
 </resources>

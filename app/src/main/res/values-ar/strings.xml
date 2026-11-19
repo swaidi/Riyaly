@@ -40,7 +40,7 @@
     <string name="setup_permissions_title">السماح بالوصول إلى الرسائل والإشعارات</string>
     <string name="setup_permissions_body">يقرأ ريالي رسائل البنوك المحددة فقط، وتبقى جميع البيانات على هذا الجهاز.</string>
     <string name="setup_cards_title">سجّل بطاقات العائلة</string>
-    <string name="setup_cards_body">أضف كل فرد من العائلة وآخر أربعة أرقام من بطاقته، ليظهر اسمه تلقائيًا مع كل عملية.</string>
+    <string name="setup_cards_body">أضف كل عضو وآخر أرقام بطاقاته وحساباته، ليظهر اسمه تلقائيًا مع كل عملية.</string>
 
     <string name="p_this_month">هذا الشهر</string>
     <string name="p_3_months">3 أشهر</string>
@@ -50,7 +50,7 @@
     <string name="t_count">العمليات</string>
     <string name="t_alerts">تنبيهات مفتوحة</string>
     <string name="no_data_yet">لا يوجد صرف مسجل لهذه الفترة بعد. تظهر رسائل البنك الجديدة هنا تلقائيًا، ويمكنك استيراد الرسائل السابقة من الإعدادات.</string>
-    <string name="d_by_member">الصرف حسب الفرد</string>
+    <string name="d_by_member">الصرف حسب العضو</string>
     <string name="d_trend">الاتجاه الشهري</string>
     <string name="d_top_merchants">أكثر التجار</string>
     <string name="d_merchant_hint">المبلغ · عدد الزيارات. اضغط على الشريط لعرض العمليات.</string>
@@ -115,14 +115,14 @@
     <string name="category_for">فئة %1$s</string>
     <string name="delete_txn">حذف هذه العملية</string>
     <string name="delete_txn_q">تُحذف العملية من ريالي فقط، وتبقى الرسالة في الرسائل.</string>
-    <string name="add_member_first">أضف فردًا من العائلة أولًا.</string>
+    <string name="add_member_first">أضف عضوًا أولًا.</string>
     <string name="register_card_q_title">تسجيل هذه البطاقة؟</string>
     <string name="register_card_q">تسجيل البطاقة %1$s باسم %2$s لتُعرف عملياتها القادمة تلقائيًا؟</string>
     <string name="no_alerts">لا توجد تنبيهات مفتوحة</string>
     <string name="no_alerts_body">تظهر هنا العمليات المشبوهة أو غير المعروفة حتى تؤكدها.</string>
     <string name="recently_confirmed">أُكدت مؤخرًا</string>
 
-    <string name="x_member">الفرد</string>
+    <string name="x_member">العضو</string>
     <string name="x_members">الأفراد</string>
     <string name="x_amount">المبلغ</string>
     <string name="x_currency">العملة</string>
@@ -149,18 +149,18 @@
     <string name="x_sheet_merchants">التجار</string>
     <string name="km_from_home">%1$d كم من المنزل</string>
 
-    <string name="family_intro">سجّل كل فرد من العائلة وآخر أربعة أرقام من بطاقاته. يمكن أن يكون للشخص أكثر من بطاقة.</string>
-    <string name="add_member">إضافة فرد</string>
-    <string name="edit_member">تعديل الفرد</string>
+    <string name="family_intro">سجّل كل عضو وآخر 3 أو 4 أرقام من بطاقاته وحساباته. يمكن أن يكون للعضو أكثر من بطاقة.</string>
+    <string name="add_member">إضافة عضو</string>
+    <string name="edit_member">تعديل العضو</string>
     <string name="member_name">الاسم أو اللقب</string>
     <string name="member_name_helper">يظهر في الإشعارات</string>
-    <string name="delete_member">حذف الفرد</string>
+    <string name="delete_member">حذف العضو</string>
     <string name="delete_member_q">حذف %1$s وبطاقاته؟ تبقى العمليات السابقة لكنها تصبح غير معروفة.</string>
     <string name="add_card">إضافة بطاقة</string>
     <string name="add_card_for">إضافة بطاقة لـ %1$s</string>
-    <string name="card_digits">آخر أربعة أرقام</string>
+    <string name="card_digits">آخر 3 أو 4 أرقام</string>
     <string name="card_digits_helper">كما تظهر في رسالة البنك</string>
-    <string name="card_digits_error">يرجى إدخال أربعة أرقام بالضبط.</string>
+    <string name="card_digits_error">يرجى إدخال 3 أو 4 أرقام.</string>
     <string name="card_taken">البطاقة %1$s مسجلة باسم %2$s.</string>
     <string name="remove_card">إزالة البطاقة</string>
     <string name="remove_card_q">إزالة البطاقة %1$s من %2$s؟</string>
@@ -233,7 +233,7 @@
     <string name="restore_failed">تعذرت الاستعادة. تحقق من الملف وكلمة المرور.</string>
 
     <string name="s_report">تقرير Excel الشهري</string>
-    <string name="report_intro">ملخص لكل فرد، وجميع العمليات، والتجار للشهر الذي تختاره.</string>
+    <string name="report_intro">ملخص لكل عضو، وجميع العمليات، والتجار للشهر الذي تختاره.</string>
     <string name="export_excel">تصدير تقرير Excel</string>
     <string name="report_done">تم حفظ التقرير.</string>
     <string name="report_failed">تعذر إنشاء التقرير.</string>
@@ -343,4 +343,10 @@
     <string name="downloading_update">جارٍ تنزيل التحديث…</string>
     <string name="update_failed">فشل التنزيل. يرجى المحاولة مرة أخرى.</string>
     <string name="update_public_note">تأتي التحديثات من صفحة ريالي العامة على GitHub. لا حاجة لرمز؛ الرمز لنسخة خاصة فقط.</string>
+    <string name="not_txn">ليست عملية</string>
+    <string name="not_txn_q">إزالة هذه الرسالة من ريالي؟ سيتم تجاهل الرسائل التي تبدأ بنفس الطريقة من الآن. يمكنك التراجع من الإعدادات › الرسائل المتجاهلة.</string>
+    <string name="remove">إزالة</string>
+    <string name="s_ignored">الرسائل المتجاهلة</string>
+    <string name="s_ignored_intro">لا تُسجَّل الرسائل التي تبدأ مثل هذه. رسائل الإعلانات (المرسلون المنتهون بـ -AD) ورموز التحقق تُتجاهل دائمًا.</string>
+    <string name="ignored_none">لا توجد بعد. استخدم «ليست عملية» على رسالة سُجِّلت بالخطأ.</string>
 </resources>

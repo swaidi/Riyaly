@@ -213,6 +213,11 @@ object TxnDetail {
         }
         act(if (t.match == Match.IDENTIFIED) R.string.change_person else R.string.choose_person) { choosePerson(a, t, onChanged) }
         if (t.merchant != null && t.kind == Parser.Kind.PURCHASE) act(R.string.change_category) { chooseCategory(a, t, onChanged) }
+        act(R.string.not_txn) {
+            c.confirm(c.getString(R.string.not_txn), c.getString(R.string.not_txn_q), c.getString(R.string.remove)) {
+                Processor.markNotTransaction(a, t); onChanged()
+            }
+        }
         act(R.string.delete_txn) { c.confirm(c.getString(R.string.delete_txn), c.getString(R.string.delete_txn_q), c.getString(R.string.delete)) { a.db.deleteTxn(t.id); onChanged() } }
         dlg.show()
     }
