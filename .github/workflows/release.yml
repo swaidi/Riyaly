@@ -31,8 +31,15 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      - name: Run message-reading tests
+      - name: Run tests (message reading, rules, insights and simulated phone)
         run: gradle testReleaseUnitTest --no-daemon --stacktrace
+
+      - name: Keep test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: app/build/reports/tests/
 
       - name: Restore signing key
         env:
@@ -68,5 +75,5 @@ jobs:
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: Riyaly v1.0.${{ github.run_number }}
-          body: Automatic build from commit ${{ github.sha }}.
+          body_path: release-notes.txt
           files: dist/*.apk

@@ -14,9 +14,10 @@ object Categories {
     const val TRANSPORT = "transport"
     const val BILLS = "bills"
     const val CASH = "cash"
+    const val FEES = "fees"
     const val OTHER = "other"
 
-    val ALL = listOf(FOOD_DELIVERY, RESTAURANTS, CAFES, GROCERIES, FUEL, SHOPPING, ONLINE, PHARMACY, TELECOM, TRANSPORT, BILLS, CASH, OTHER)
+    val ALL = listOf(FOOD_DELIVERY, RESTAURANTS, CAFES, GROCERIES, FUEL, SHOPPING, ONLINE, PHARMACY, TELECOM, TRANSPORT, BILLS, FEES, CASH, OTHER)
 
     private val KEYWORDS: List<Pair<String, List<String>>> = listOf(
         FOOD_DELIVERY to listOf("HUNGERSTATION", "HUNGERSTA", "JAHEZ", "TOYOU", "MRSOOL", "KEETA", "NINJA", "CAREEM FOOD", "TALABAT", "THE CHEFZ", "CHEFZ", "جاهز", "هنقرستيشن", "مرسول"),
@@ -48,6 +49,7 @@ object Categories {
     fun forTxn(db: Db, t: Txn): String = when (t.kind) {
         Parser.Kind.WITHDRAWAL -> CASH
         Parser.Kind.BILL -> BILLS
+        Parser.Kind.FEE -> FEES
         else -> of(db, t.merchant)
     }
 
@@ -65,6 +67,7 @@ object Categories {
             TRANSPORT -> R.string.cat_transport
             BILLS -> R.string.cat_bills
             CASH -> R.string.cat_cash
+            FEES -> R.string.cat_fees
             else -> R.string.cat_other
         }
         return ctx.getString(id)

@@ -98,13 +98,13 @@ object Xlsx {
         txns.filter { !it.isDeclined && it.currency == "SAR" }.groupBy { who(it) }.toSortedMap().forEach { (name, list) ->
             val sp = list.filter { it.isSpend }
             summary += listOf(
-                name, sp.size, sp.sumOf { it.amount }, if (sp.isEmpty()) null else sp.sumOf { it.amount } / sp.size, sp.maxOfOrNull { it.amount },
+                name, sp.size, sp.sumOf { it.netSpend }, if (sp.isEmpty()) null else sp.sumOf { it.amount } / sp.size, sp.maxOfOrNull { it.amount },
                 sp.filter { it.kind == Parser.Kind.WITHDRAWAL }.sumOf { it.amount }, list.filter { it.isMoneyIn }.sumOf { it.amount },
                 list.filter { it.isTransferOut }.sumOf { it.amount }, list.count { it.reasons.isNotEmpty() },
             )
         }
         summary += listOf(
-            ctx.getString(R.string.x_total), spend.size, spend.sumOf { it.amount }, null, null,
+            ctx.getString(R.string.x_total), spend.size, spend.sumOf { it.netSpend }, null, null,
             spend.filter { it.kind == Parser.Kind.WITHDRAWAL }.sumOf { it.amount }, txns.filter { it.isMoneyIn }.sumOf { it.amount },
             txns.filter { it.isTransferOut }.sumOf { it.amount }, txns.count { it.reasons.isNotEmpty() },
         )
@@ -133,7 +133,7 @@ object Xlsx {
             ctx.getString(R.string.x_total_sar), ctx.getString(R.string.x_members),
         ))
         spend.filter { it.merchant != null && it.kind == Parser.Kind.PURCHASE }.groupBy { it.merchant!! }.entries.sortedByDescending { e -> e.value.sumOf { it.amount } }.forEach { (m, list) ->
-            merchants += listOf(m, Categories.label(ctx, Categories.of(db, m)), list.size, list.sumOf { it.amount },
+            merchants += listOf(m, Categories.label(ctx, Categories.of(db, m)), list.size, list.sumOf { it.netSpend },
                 list.map { who(it) }.distinct().joinToString(", "))
         }
 

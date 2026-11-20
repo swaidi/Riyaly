@@ -1,0 +1,26 @@
+What's new
+
+Top bar
+- Update and Feedback buttons are now at the top of every page. A dot on Update means a new version is ready (checked daily).
+- Feedback: type it, speak it (speech to text), or record a voice note; a screenshot and the issue log can be attached. Sent by email with the app version and phone model only.
+
+Simpler screens
+- Home shows only what matters: Safe to spend, spent vs last month, money in, net result, alerts, duplicates, fees, where the money went, next payments. "More charts" holds the rest.
+- New Plan tab: Safe to spend, budgets and targets, recurring payments, who owes me, possible duplicates, fees, small purchases, family.
+- Settings is split into groups, with an Advanced page.
+
+Smarter alerts
+- Risk levels: High rings and is repeated after 15 minutes if unanswered; Medium waits quietly for review; Low is only recorded.
+- Clear reasons with numbers, "OK this time" or "Always OK" (per person), and a Call the bank button (add the bank's phone in Settings > Banks).
+- Duplicate charges judged by each place's usual rhythm (daily coffee is normal), double bookings across family cards, holds, refund follow-up after 7 and 14 days.
+- Card testing, first online purchase, cancelled-but-charged, price increases, free trial ended, bank fees, refunds with no matching purchase.
+
+Money insights
+- Refunds are matched to the purchase and subtracted from spending.
+- Transfers between family accounts are no longer counted as income or spending.
+- Salary detection, payday-to-payday view, saving target and pace warnings, budgets per category, person and habit (alerts at 80% and 100%).
+- Fees and the estimated exchange-rate cost abroad, with the cheapest card abroad.
+- Payday, month-end and Sunday summaries.
+
+Issue log
+- Settings > Advanced > Issue log records what the app did and any errors, without amounts or card digits.

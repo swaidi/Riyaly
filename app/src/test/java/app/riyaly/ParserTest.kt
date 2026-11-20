@@ -236,4 +236,24 @@ class ParserTest {
         // A card that really ends in 2026 is still found where a card appears.
         assertEquals(listOf("2026"), Parser.parse("شراء بـSR 50\nعبر2026;مدى\nلـSHOP", setOf("2026")).matchedCards)
     }
+
+    @Test fun feeMessages() {
+        val annual = Parser.parse("خصم رسوم سنوية بطاقة ائتمانية\nبطاقة:1234\nمبلغ:SR 115\nرصيد:900 SR", cards)
+        assertTrue(annual.isTransaction)
+        assertEquals(Parser.Kind.FEE, annual.kind)
+        assertEquals("annual", Parser.feeTypeOf("خصم رسوم سنوية بطاقة ائتمانية"))
+        assertEquals("atm", Parser.feeTypeOf("ATM fee SAR 5"))
+        assertEquals("penalty", Parser.feeTypeOf("غرامة تأخير سداد"))
+        // A purchase that lists its fee is still a purchase.
+        val p = Parser.parse("شراء انترنت\nبطاقة:1234 ;فيزا\nمبلغ: 97.95 SAR\nلدى:SHOP.IND\nرسوم وضريبة: 2.25 SAR\nاجمالي المبلغ المستحق: 100.2 SAR", cards)
+        assertEquals(Parser.Kind.PURCHASE, p.kind)
+    }
+
+    @Test fun refundWords() {
+        listOf("عكس عملية SR 20\nبطاقة:1234", "Refund SAR 20.00 card *1234", "Reversal SAR 20 card 1234", "مرتجع شراء SR 20\nبطاقة:1234").forEach {
+            val r = Parser.parse(it, cards)
+            assertEquals(it, Parser.Kind.REFUND, r.kind)
+            assertTrue(r.isCredit)
+        }
+    }
 }

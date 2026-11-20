@@ -35,10 +35,16 @@ data class TxnFilter(
 abstract class Screen(val a: MainActivity) {
     abstract val titleRes: Int
     abstract fun build(): View
+    /** A title other than [titleRes] (e.g. a Settings group). */
+    open fun titleText(): String? = null
 }
 
 /** Raise when the message reader changes, so stored messages are re-read once. */
-const val READER_VERSION = 3
+const val READER_VERSION = 4
+
+const val MENU_UPDATE = 101
+const val MENU_FEEDBACK = 102
+const val MENU_SETTINGS = 103
 
 class MainActivity : AppCompatActivity() {
     lateinit var db: Db
@@ -49,11 +55,16 @@ class MainActivity : AppCompatActivity() {
     var filter = TxnFilter()
     private var current: Screen? = null
 
-    private val dashboard by lazy { DashboardScreen(this) }
+    val dashboard by lazy { DashboardScreen(this) }
     private val list by lazy { TxnListScreen(this) }
     private val alerts by lazy { AlertsScreen(this) }
     private val family by lazy { FamilyScreen(this) }
+    private val plan by lazy { PlanScreen(this) }
     val settings by lazy { SettingsScreen(this) }
+    val feedback by lazy { Feedback(this) }
+    val updates by lazy { UpdateFlow(this) }
+    /** The tab screen shown before Settings opened (Back returns to it). */
+    private var tabScreen: Screen? = null
 
     val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { refresh() }
     val pickFolder = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { it?.let(settings::onFolder) }
@@ -65,6 +76,11 @@ class MainActivity : AppCompatActivity() {
     val locationPermission = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { r ->
         settings.onLocationPermission(r.values.any { it })
     }
+    val speechLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
+        feedback.onSpeech(r.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull())
+    }
+    val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { feedback.onAudioPermission(it) }
+    val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { feedback.onScreenshot(it) }
     val mapPicker = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { r ->
         val d = r.data
         if (r.resultCode == RESULT_OK && d != null) {
@@ -74,21 +90,40 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppLog.init(this)
         db = Db.get(this)
         prefs = Prefs(this)
         Notifier.channels(this)
 
         val root = vbox()
         toolbar = MaterialToolbar(this).apply { setTitle(R.string.app_name) }
+        toolbar.menu.add(0, MENU_UPDATE, 0, R.string.btn_update).setIcon(R.drawable.ic_update).setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_ALWAYS)
+        toolbar.menu.add(0, MENU_FEEDBACK, 1, R.string.btn_feedback).setIcon(R.drawable.ic_feedback).setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_ALWAYS)
+        toolbar.menu.add(0, MENU_SETTINGS, 2, R.string.tab_settings).setIcon(R.drawable.ic_settings).setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_ALWAYS)
+        toolbar.setOnMenuItemClickListener {
+            when (it.itemId) {
+                MENU_UPDATE -> updates.checkUpdates()
+                MENU_FEEDBACK -> feedback.show()
+                MENU_SETTINGS -> openSettings()
+            }
+            true
+        }
+        toolbar.setNavigationOnClickListener { goBack() }
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (!goBack()) { isEnabled = false; onBackPressedDispatcher.onBackPressed() }
+            }
+        })
         content = FrameLayout(this)
         nav = BottomNavigationView(this)
         val m = nav.menu
         m.add(0, 1, 0, R.string.tab_dashboard).setIcon(R.drawable.ic_dashboard)
         m.add(0, 2, 1, R.string.tab_transactions).setIcon(R.drawable.ic_list)
         m.add(0, 3, 2, R.string.tab_alerts).setIcon(R.drawable.ic_alert)
-        m.add(0, 4, 3, R.string.tab_family).setIcon(R.drawable.ic_family)
-        m.add(0, 5, 4, R.string.tab_settings).setIcon(R.drawable.ic_settings)
-        nav.setOnItemSelectedListener { show(screenFor(it.itemId)); true }
+        m.add(0, 6, 3, R.string.tab_plan).setIcon(R.drawable.ic_plan)
+        m.add(0, 4, 4, R.string.tab_family).setIcon(R.drawable.ic_family)
+        nav.setOnItemSelectedListener { val sc = screenFor(it.itemId); tabScreen = sc; show(sc); true }
+        nav.setOnItemReselectedListener { val sc = screenFor(it.itemId); if (current !== sc) { tabScreen = sc; show(sc) } }
         root.addView(toolbar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root.addView(content, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         root.addView(nav, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
@@ -101,10 +136,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         Backup.schedule(this)
+        Workers.schedule(this)
+        AppLog.i("app opened ${BuildConfig.VERSION_NAME}")
         // Re-read stored messages once after an update that reads them better.
         if (prefs.readerVersion < READER_VERSION) {
             Thread {
-                try { Processor.reparseAll(this) } catch (_: Exception) {}
+                try { Processor.reparseAll(this) } catch (e: Exception) { AppLog.e("re-read messages", e) }
                 prefs.readerVersion = READER_VERSION
                 runOnUiThread { refresh() }
             }.start()
@@ -112,6 +149,47 @@ class MainActivity : AppCompatActivity() {
         nav.selectedItemId = if (db.cards().isEmpty()) 4 else 1
         handleIntent(intent)
         if (!prefs.onboarded) askPermissions()
+        updateMenu()
+        updates.backgroundCheck()
+    }
+
+    /** Shows a dot on the Update button when a newer version is available. */
+    fun updateMenu() {
+        val item = toolbar.menu.findItem(MENU_UPDATE) ?: return
+        val tag = prefs.updateAvailableTag
+        val icon = ContextCompat.getDrawable(this, R.drawable.ic_update)!!.mutate()
+        if (tag != null) {
+            val dot = android.graphics.drawable.ShapeDrawable(android.graphics.drawable.shapes.OvalShape()).apply {
+                paint.color = Ui.ALERT; intrinsicWidth = dp(9); intrinsicHeight = dp(9)
+            }
+            item.icon = android.graphics.drawable.LayerDrawable(arrayOf(icon, dot)).apply {
+                setLayerGravity(1, android.view.Gravity.TOP or android.view.Gravity.END)
+                setLayerSize(1, dp(9), dp(9))
+            }
+            item.title = getString(R.string.update_available, tag)
+        } else {
+            item.icon = icon
+            item.title = getString(R.string.btn_update)
+        }
+    }
+
+    fun plan(): PlanScreen = plan
+
+    fun openSettings() {
+        settings.page = null
+        show(settings)
+    }
+
+    /** Back: from a Settings group to the Settings list, from Settings to the tab. False when nothing to go back to. */
+    fun goBack(): Boolean {
+        if (current === settings) {
+            if (settings.page != null) { settings.page = null; show(settings) }
+            else show(tabScreen ?: dashboard)
+            return true
+        }
+        if (current is PlanScreen && plan.sub != null) { plan.sub = null; show(plan); return true }
+        if (current is DashboardScreen && dashboard.more) { dashboard.more = false; show(dashboard); return true }
+        return false
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -139,6 +217,7 @@ class MainActivity : AppCompatActivity() {
         2 -> list
         3 -> alerts
         4 -> family
+        6 -> plan
         else -> settings
     }
 
@@ -149,6 +228,12 @@ class MainActivity : AppCompatActivity() {
         (content.getChildAt(0) as? android.widget.ScrollView)?.let { sv -> current?.let { scrollPositions[it] = sv.scrollY } }
         current = s
         toolbar.setTitle(s.titleRes)
+        s.titleText()?.let { toolbar.title = it }
+        val nested = s === settings || (s is PlanScreen && s.sub != null) || (s is DashboardScreen && s.more)
+        if (nested) {
+            toolbar.setNavigationIcon(R.drawable.ic_back)
+            toolbar.setNavigationContentDescription(R.string.back)
+        } else toolbar.navigationIcon = null
         content.removeAllViews()
         val v = s.build()
         content.addView(v, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -169,6 +254,8 @@ class MainActivity : AppCompatActivity() {
         val n = db.openAlerts().size
         if (n > 0) nav.getOrCreateBadge(3).number = n else nav.removeBadge(3)
     }
+
+    fun hasPermission(p: String) = ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_GRANTED
 
     fun missingPermissions(): List<String> {
         val need = listOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS, Manifest.permission.POST_NOTIFICATIONS)

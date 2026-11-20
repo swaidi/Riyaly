@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">ريالي</string>
 
-    <string name="tab_dashboard">اللوحة</string>
+    <string name="tab_dashboard">الرئيسية</string>
     <string name="tab_transactions">العمليات</string>
     <string name="tab_alerts">التنبيهات</string>
     <string name="tab_family">العائلة</string>

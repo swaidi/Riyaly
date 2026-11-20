@@ -37,7 +37,20 @@ data class Bank(
     val senders: List<String>,
     val balanceWords: List<String>,
     val merchantPrefixes: List<String>,
+    /** The bank's phone number for reporting a lost card or fraud (optional). */
+    val phone: String? = null,
 )
+
+/** Risk level of a transaction's alert. */
+object Risk { const val HIGH = "high"; const val MEDIUM = "medium"; const val LOW = "low" }
+
+/** State of a possible duplicate charge. */
+object DupState { const val OPEN = "open"; const val CONFIRMED = "confirmed"; const val REFUNDED = "refunded"; const val NORMAL = "normal" }
+
+data class Loan(
+    val id: Long, val txnId: Long?, val counterparty: String, val acct: String?, val amount: Double,
+    val repaid: Double, val dueTs: Long?, val createdTs: Long,
+) { val open: Boolean get() = repaid + 0.01 < amount }
 
 object Match { const val IDENTIFIED = "identified"; const val UNKNOWN = "unknown"; const val AMBIGUOUS = "ambiguous" }
 object AlertState { const val NONE = "none"; const val OPEN = "open"; const val OK = "ok"; const val CHECK = "check" }
@@ -75,20 +88,46 @@ data class Txn(
     val counterpartyAcct: String? = null,
     val declineReason: String? = null,
     val duringTravel: Boolean = false,
+    /** For a refund: the purchase it returns money for. */
+    val refundOf: Long? = null,
+    /** For a purchase: how much of it has been refunded so far. */
+    val refunded: Double = 0.0,
+    /** A transfer between the family's own registered accounts. */
+    val internal: Boolean = false,
+    /** For money in: salary, person, refund or other. */
+    val incomeType: String? = null,
+    val risk: String? = null,
+    val dupOf: Long? = null,
+    val dupState: String? = null,
+    /** The user's own note, e.g. what cash was spent on. */
+    val note: String? = null,
+    /** Estimated extra cost of the bank's exchange rate versus the market rate (SAR). */
+    val fxExtra: Double? = null,
+    /** Plain-language reasons for the alert, one per line. */
+    val explain: String? = null,
+    val feeType: String? = null,
 ) {
+    /** Money spent (purchases, cash, bills, fees), counted net of refunds. */
     val isSpend: Boolean get() = !isDeclined && currency == "SAR" && kind in Parser.Kind.SPEND
-    val isMoneyIn: Boolean get() = !isDeclined && currency == "SAR" && kind in Parser.Kind.INFLOW
-    val isTransferOut: Boolean get() = !isDeclined && currency == "SAR" && kind == Parser.Kind.TRANSFER_OUT
+    val netSpend: Double get() = (amount - refunded).coerceAtLeast(0.0)
+    /** Income: transfers in and deposits, not refunds and not moves between the family's own accounts. */
+    val isMoneyIn: Boolean get() = !isDeclined && currency == "SAR" && kind in setOf(Parser.Kind.TRANSFER_IN, Parser.Kind.CREDIT_IN) && !internal
+    val isTransferOut: Boolean get() = !isDeclined && currency == "SAR" && kind == Parser.Kind.TRANSFER_OUT && !internal
+    val isRefund: Boolean get() = !isDeclined && kind == Parser.Kind.REFUND
+    /** Total fees paid on this transaction: listed fees, fee charges and the exchange-rate cost. */
+    val feesPaid: Double get() = (fees ?: 0.0) + (if (kind == Parser.Kind.FEE && !isDeclined) amount else 0.0) + (fxExtra ?: 0.0)
 }
 
-class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", null, 2) {
+class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", null, 3) {
 
     companion object {
         @Volatile private var inst: Db? = null
         fun get(ctx: Context): Db = inst ?: synchronized(this) {
             inst ?: Db(ctx.applicationContext).also { inst = it }
         }
-        val TABLES = listOf("members", "cards", "banks", "txns", "merchants", "watch")
+        /** Tests only: forget the open database so the next test starts clean. */
+        fun resetForTests() = synchronized(this) { inst?.close(); inst = null }
+        val TABLES = listOf("members", "cards", "banks", "txns", "merchants", "watch", "loans", "budgets", "trust", "rec_state")
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -111,7 +150,7 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
             put("merchant_prefixes", Parser.DEFAULT_MERCHANT_PREFIXES.joinToString(","))
         }
         db.insert("banks", null, cv)
-        onUpgrade(db, 1, 2)
+        onUpgrade(db, 1, 3)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -125,6 +164,72 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
                 "txns" to "counterparty_acct TEXT", "txns" to "decline_reason TEXT", "txns" to "during_travel INTEGER DEFAULT 0",
             ).forEach { (t, col) -> db.execSQL("ALTER TABLE $t ADD COLUMN $col") }
         }
+        if (oldVersion < 3) {
+            listOf(
+                "txns" to "refund_of INTEGER", "txns" to "refunded REAL DEFAULT 0", "txns" to "internal INTEGER DEFAULT 0",
+                "txns" to "income_type TEXT", "txns" to "risk TEXT", "txns" to "dup_of INTEGER", "txns" to "dup_state TEXT",
+                "txns" to "note TEXT", "txns" to "fx_extra REAL", "txns" to "explain TEXT", "txns" to "fee_type TEXT",
+                "merchants" to "display_name TEXT", "merchants" to "alias_of TEXT", "merchants" to "repeats_normal INTEGER DEFAULT 0",
+                "banks" to "phone TEXT",
+            ).forEach { (t, col) -> db.execSQL("ALTER TABLE $t ADD COLUMN $col") }
+            db.execSQL("CREATE TABLE IF NOT EXISTS loans(id INTEGER PRIMARY KEY AUTOINCREMENT, txn_id INTEGER, counterparty TEXT, acct TEXT, amount REAL, repaid REAL DEFAULT 0, due_ts INTEGER, created_ts INTEGER)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS budgets(kind TEXT, key TEXT, amount REAL, PRIMARY KEY(kind, key))")
+            db.execSQL("CREATE TABLE IF NOT EXISTS trust(member_id INTEGER, merchant TEXT, PRIMARY KEY(member_id, merchant))")
+            db.execSQL("CREATE TABLE IF NOT EXISTS rec_state(key TEXT PRIMARY KEY, state TEXT, period_days INTEGER, reviewed_ts INTEGER)")
+        }
+    }
+
+    // ---------- loans ----------
+    fun loans(): List<Loan> = readableDatabase.rawQuery(
+        "SELECT id,txn_id,counterparty,acct,amount,repaid,due_ts,created_ts FROM loans ORDER BY created_ts DESC", null
+    ).use { c -> c.all { Loan(it.getLong(0), it.getLongOrNull(1), it.getString(2) ?: "", it.getStringOrNull(3), it.getDouble(4), it.getDouble(5), it.getLongOrNull(6), it.getLong(7)) } }
+
+    fun saveLoan(l: Loan): Long {
+        val cv = ContentValues().apply {
+            if (l.txnId == null) putNull("txn_id") else put("txn_id", l.txnId)
+            put("counterparty", l.counterparty); put("acct", l.acct); put("amount", l.amount); put("repaid", l.repaid)
+            if (l.dueTs == null) putNull("due_ts") else put("due_ts", l.dueTs)
+            put("created_ts", l.createdTs)
+        }
+        return if (l.id <= 0) writableDatabase.insert("loans", null, cv) else { writableDatabase.update("loans", cv, "id=?", arrayOf("${l.id}")); l.id }
+    }
+
+    fun deleteLoan(id: Long) { writableDatabase.delete("loans", "id=?", arrayOf("$id")) }
+
+    // ---------- budgets (kind: category, habit, member) ----------
+    fun budgets(kind: String): Map<String, Double> = readableDatabase.rawQuery("SELECT key,amount FROM budgets WHERE kind=?", arrayOf(kind)).use { c ->
+        c.all { it.getString(0) to it.getDouble(1) }.toMap()
+    }
+
+    fun setBudget(kind: String, key: String, amount: Double?) {
+        if (amount == null || amount <= 0) writableDatabase.delete("budgets", "kind=? AND key=?", arrayOf(kind, key))
+        else writableDatabase.insertWithOnConflict("budgets", null, ContentValues().apply { put("kind", kind); put("key", key); put("amount", amount) }, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    // ---------- per-person trust ("Always OK") ----------
+    fun trusted(memberId: Long?): Set<String> = readableDatabase.rawQuery("SELECT merchant FROM trust WHERE member_id=?", arrayOf("${memberId ?: -1}")).use { c ->
+        c.all { it.getString(0) }.toSet()
+    }
+
+    fun trust(memberId: Long?, merchant: String) {
+        writableDatabase.insertWithOnConflict("trust", null, ContentValues().apply { put("member_id", memberId ?: -1); put("merchant", merchant) }, SQLiteDatabase.CONFLICT_IGNORE)
+    }
+
+    // ---------- recurring payment states ----------
+    data class RecState(val key: String, val state: String?, val periodDays: Int?, val reviewedTs: Long?)
+
+    fun recStates(): Map<String, RecState> = readableDatabase.rawQuery("SELECT key,state,period_days,reviewed_ts FROM rec_state", null).use { c ->
+        c.all { RecState(it.getString(0), it.getStringOrNull(1), it.getLongOrNull(2)?.toInt(), it.getLongOrNull(3)) }.associateBy { it.key }
+    }
+
+    fun setRecState(key: String, state: String?, periodDays: Int? = null) {
+        val old = recStates()[key]
+        writableDatabase.insertWithOnConflict("rec_state", null, ContentValues().apply {
+            put("key", key); put("state", state)
+            val p = periodDays ?: old?.periodDays
+            if (p == null) putNull("period_days") else put("period_days", p)
+            put("reviewed_ts", System.currentTimeMillis())
+        }, SQLiteDatabase.CONFLICT_REPLACE)
     }
 
     // ---------- members & cards ----------
@@ -180,9 +285,11 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
     fun deleteCard(last4: String) { writableDatabase.delete("cards", "last4=?", arrayOf(last4)) }
 
     // ---------- banks ----------
-    fun banks(): List<Bank> = readableDatabase.rawQuery("SELECT id,name,senders,balance_words,merchant_prefixes FROM banks ORDER BY id", null).use { c ->
-        c.all { Bank(it.getLong(0), it.getString(1) ?: "", split(it.getString(2)), split(it.getString(3)), split(it.getString(4))) }
+    fun banks(): List<Bank> = readableDatabase.rawQuery("SELECT id,name,senders,balance_words,merchant_prefixes,phone FROM banks ORDER BY id", null).use { c ->
+        c.all { Bank(it.getLong(0), it.getString(1) ?: "", split(it.getString(2)), split(it.getString(3)), split(it.getString(4)), it.getStringOrNull(5)) }
     }
+
+    fun bank(id: Long?): Bank? = banks().firstOrNull { it.id == id }
 
     fun saveBank(b: Bank): Long {
         val cv = ContentValues().apply {
@@ -190,6 +297,7 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
             put("senders", b.senders.joinToString(","))
             put("balance_words", b.balanceWords.joinToString(","))
             put("merchant_prefixes", b.merchantPrefixes.joinToString(","))
+            put("phone", b.phone)
         }
         return if (b.id <= 0) writableDatabase.insert("banks", null, cv)
         else { writableDatabase.update("banks", cv, "id=?", arrayOf("${b.id}")); b.id }
@@ -197,7 +305,6 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
 
     fun deleteBank(id: Long) { writableDatabase.delete("banks", "id=?", arrayOf("$id")) }
 
-    /** The bank whose sender list matches this SMS address (case-insensitive, ignoring spaces/dashes). */
     /**
      * The bank whose sender list matches this SMS address exactly (ignoring capitals, spaces, dashes and dots).
      * Advertising senders, which in Saudi Arabia end in "-AD" (e.g. "SAB-Ad"), are never read.
@@ -218,19 +325,36 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
     fun deleteWatch(k: String) { writableDatabase.delete("watch", "keyword=?", arrayOf(k)) }
 
     // ---------- merchants ----------
-    data class MerchantMeta(val name: String, val category: String?, val lat: Double?, val lon: Double?, val lookedUp: Boolean, val trusted: Boolean)
+    data class MerchantMeta(
+        val name: String, val category: String?, val lat: Double?, val lon: Double?, val lookedUp: Boolean, val trusted: Boolean,
+        val displayName: String? = null, val aliasOf: String? = null, val repeatsNormal: Boolean = false,
+    )
+
+    private val MCOLS = "name,category,lat,lon,looked_up,trusted,display_name,alias_of,repeats_normal"
 
     fun merchant(name: String): MerchantMeta? = readableDatabase.rawQuery(
-        "SELECT name,category,lat,lon,looked_up,trusted FROM merchants WHERE name=?", arrayOf(name)
+        "SELECT $MCOLS FROM merchants WHERE name=?", arrayOf(name)
     ).use { c -> c.all { readMerchant(it) }.firstOrNull() }
 
-    fun merchants(): List<MerchantMeta> = readableDatabase.rawQuery("SELECT name,category,lat,lon,looked_up,trusted FROM merchants", null).use { c ->
+    fun merchants(): List<MerchantMeta> = readableDatabase.rawQuery("SELECT $MCOLS FROM merchants", null).use { c ->
         c.all { readMerchant(it) }
     }
 
     private fun readMerchant(c: Cursor) = MerchantMeta(
-        c.getString(0), c.getStringOrNull(1), c.getDoubleOrNull(2), c.getDoubleOrNull(3), c.getInt(4) == 1, c.getInt(5) == 1
+        c.getString(0), c.getStringOrNull(1), c.getDoubleOrNull(2), c.getDoubleOrNull(3), c.getInt(4) == 1, c.getInt(5) == 1,
+        c.getStringOrNull(6), c.getStringOrNull(7), (c.getLongOrNull(8) ?: 0L) == 1L,
     )
+
+    /** Friendly name and merging: "HUNGERSTA" can show as "HungerStation" and count together with its other spellings. */
+    fun setMerchantName(name: String, displayName: String?, aliasOf: String?) {
+        ensureMerchant(name)
+        writableDatabase.update("merchants", ContentValues().apply { put("display_name", displayName); put("alias_of", aliasOf) }, "name=?", arrayOf(name))
+    }
+
+    fun setRepeatsNormal(name: String, normal: Boolean) {
+        ensureMerchant(name)
+        writableDatabase.update("merchants", ContentValues().apply { put("repeats_normal", if (normal) 1 else 0) }, "name=?", arrayOf(name))
+    }
 
     private fun ensureMerchant(name: String) {
         writableDatabase.insertWithOnConflict("merchants", null, ContentValues().apply { put("name", name) }, SQLiteDatabase.CONFLICT_IGNORE)
@@ -284,6 +408,13 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
         put("orig_currency", t.origCurrency); put("country", t.country)
         put("counterparty", t.counterparty); put("counterparty_acct", t.counterpartyAcct)
         put("decline_reason", t.declineReason); put("during_travel", if (t.duringTravel) 1 else 0)
+        if (t.refundOf == null) putNull("refund_of") else put("refund_of", t.refundOf)
+        put("refunded", t.refunded); put("internal", if (t.internal) 1 else 0); put("income_type", t.incomeType)
+        put("risk", t.risk)
+        if (t.dupOf == null) putNull("dup_of") else put("dup_of", t.dupOf)
+        put("dup_state", t.dupState); put("note", t.note)
+        if (t.fxExtra == null) putNull("fx_extra") else put("fx_extra", t.fxExtra)
+        put("explain", t.explain); put("fee_type", t.feeType)
     }
 
     fun txn(id: Long): Txn? = queryTxns("id=?", arrayOf("$id")).firstOrNull()
@@ -291,7 +422,10 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
     fun txns(fromTs: Long = 0, toTs: Long = Long.MAX_VALUE): List<Txn> =
         queryTxns("ts>=? AND ts<?", arrayOf("$fromTs", "$toTs"))
 
+    /** Alerts that need attention: open or being checked, and every ambiguous card. Medium-risk ones are listed too. */
     fun openAlerts(): List<Txn> = queryTxns("alert IN ('open','check') OR match_state='ambiguous'", emptyArray())
+
+    fun highOpenAlerts(): List<Txn> = openAlerts().filter { it.risk != Risk.MEDIUM && it.risk != Risk.LOW }
 
     fun hashExists(h: String): Boolean =
         readableDatabase.rawQuery("SELECT 1 FROM txns WHERE sms_hash=?", arrayOf(h)).use { it.moveToFirst() }
@@ -305,7 +439,8 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
     private fun queryTxns(where: String, args: Array<String>): List<Txn> = readableDatabase.rawQuery(
         """SELECT id,sms_hash,sender,bank_id,body,ts,amount,currency,balance,merchant,method,type,is_credit,is_declined,
            is_foreign,card,member_id,match_state,candidates,alert,reasons,city,distance_km,kind,fees,orig_amount,orig_currency,
-           country,counterparty,counterparty_acct,decline_reason,during_travel FROM txns WHERE $where ORDER BY ts DESC""",
+           country,counterparty,counterparty_acct,decline_reason,during_travel,refund_of,refunded,internal,income_type,risk,
+           dup_of,dup_state,note,fx_extra,explain,fee_type FROM txns WHERE $where ORDER BY ts DESC""",
         args
     ).use { c ->
         c.all {
@@ -323,6 +458,10 @@ class Db private constructor(ctx: Context) : SQLiteOpenHelper(ctx, "riyaly.db", 
                 origAmount = it.getDoubleOrNull(25), origCurrency = it.getStringOrNull(26), country = it.getStringOrNull(27),
                 counterparty = it.getStringOrNull(28), counterpartyAcct = it.getStringOrNull(29),
                 declineReason = it.getStringOrNull(30), duringTravel = (it.getLongOrNull(31) ?: 0L) == 1L,
+                refundOf = it.getLongOrNull(32), refunded = it.getDoubleOrNull(33) ?: 0.0, internal = (it.getLongOrNull(34) ?: 0L) == 1L,
+                incomeType = it.getStringOrNull(35), risk = it.getStringOrNull(36), dupOf = it.getLongOrNull(37),
+                dupState = it.getStringOrNull(38), note = it.getStringOrNull(39), fxExtra = it.getDoubleOrNull(40),
+                explain = it.getStringOrNull(41), feeType = it.getStringOrNull(42),
             )
         }
     }

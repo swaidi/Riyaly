@@ -51,6 +51,12 @@ fun Context.scroll(child: View): ScrollView = ScrollView(this).apply {
     addView(child, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
 }
 
+fun Context.scrollH(child: View): android.widget.HorizontalScrollView = android.widget.HorizontalScrollView(this).apply {
+    isHorizontalScrollBarEnabled = false
+    addView(child)
+    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = dp(12) }
+}
+
 fun Context.text(s: CharSequence, size: Float = 15f, bold: Boolean = false, color: Int? = null): TextView = TextView(this).apply {
     text = s
     setTextSize(TypedValue.COMPLEX_UNIT_SP, size)
@@ -71,12 +77,12 @@ fun Context.card(vararg children: View, onClick: (() -> Unit)? = null): Material
     strokeWidth = dp(1)
     strokeColor = attrColor(com.google.android.material.R.attr.colorOutlineVariant, Color.LTGRAY)
     useCompatPadding = false
-    val inner = vbox(14)
+    val inner = vbox(16)
     children.forEach { inner.addView(it, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)) }
     addView(inner)
     if (onClick != null) { isClickable = true; setOnClickListener { onClick() } }
     layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-        bottomMargin = dp(10)
+        bottomMargin = dp(12)
     }
 }
 

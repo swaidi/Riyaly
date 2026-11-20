@@ -3,7 +3,7 @@
     <string name="app_name">Riyaly</string>
 
     <!-- Tabs -->
-    <string name="tab_dashboard">Dashboard</string>
+    <string name="tab_dashboard">Home</string>
     <string name="tab_transactions">Transactions</string>
     <string name="tab_alerts">Alerts</string>
     <string name="tab_family">Family</string>

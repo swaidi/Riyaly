@@ -20,9 +20,11 @@ object Parser {
         const val REFUND = "refund"
         const val CREDIT_IN = "credit_in"
         const val BILL = "bill"
-        val ALL = listOf(PURCHASE, WITHDRAWAL, BILL, TRANSFER_OUT, TRANSFER_IN, REFUND, CREDIT_IN)
+        /** A bank fee, charge, penalty or interest. */
+        const val FEE = "fee"
+        val ALL = listOf(PURCHASE, WITHDRAWAL, BILL, FEE, TRANSFER_OUT, TRANSFER_IN, REFUND, CREDIT_IN)
         val INFLOW = setOf(TRANSFER_IN, REFUND, CREDIT_IN)
-        val SPEND = setOf(PURCHASE, WITHDRAWAL, BILL)
+        val SPEND = setOf(PURCHASE, WITHDRAWAL, BILL, FEE)
     }
 
     data class Profile(
@@ -222,16 +224,41 @@ object Parser {
         return fs.firstOrNull { (k, _) -> ps.any { k.contains(it) } }?.second
     }
 
-    fun kindOf(body: String): String {
+    private val FEE_WORDS = listOf("رسوم", "رسم", "عموله", "عمولة", "غرامه", "غرامة", "فوائد", "فائده", "فائدة", "fee", "fees", "charge", "commission", "penalty", "interest")
+    private val PURCHASE_WORDS = listOf("شراء", "purchase", "حواله", "حوالة", "تحويل", "transfer")
+
+    /** Which kind of fee a fee message is (annual, atm, transfer, penalty, interest or other). */
+    fun feeTypeOf(body: String): String {
         val l = fold(body)
         fun has(vararg w: String) = w.any { l.contains(fold(it)) }
         return when {
+            has("سنوي", "سنويه", "annual", "yearly") -> "annual"
+            has("صراف", "سحب", "atm", "withdraw") -> "atm"
+            has("تحويل", "حواله", "حوالة", "transfer") -> "transfer"
+            has("غرامه", "غرامة", "تاخير", "تأخير", "late", "penalty") -> "penalty"
+            has("فوائد", "فائده", "فائدة", "interest") -> "interest"
+            else -> "other"
+        }
+    }
+
+    fun kindOf(body: String): String {
+        val l = fold(body)
+        fun has(vararg w: String) = w.any { l.contains(fold(it)) }
+        // A message whose headline is a fee ("رسوم سنوية", "Fee charged") is a fee, even if it mentions an ATM or a transfer.
+        val headline = fold(body.lines().firstOrNull { it.isNotBlank() } ?: "")
+        val feeHeadline = FEE_WORDS.any { w ->
+            val f = fold(w)
+            if (f.first().code < 128) Regex("(?<![a-z])" + Regex.escape(f) + "(?![a-z])").containsMatchIn(headline) else headline.contains(f)
+        } &&
+            PURCHASE_WORDS.none { headline.contains(fold(it)) }
+        return when {
+            feeHeadline -> Kind.FEE
+            has("استرداد", "مسترد", "ارجاع", "إرجاع", "مرتجع", "عكس", "refund", "reversal", "reversed", "credited back") -> Kind.REFUND
             has("حواله", "حوالة", "تحويل", "transfer") -> when {
                 has("وارده", "واردة", "وارد", "incoming", "received", "credited") -> Kind.TRANSFER_IN
                 else -> Kind.TRANSFER_OUT
             }
-            has("سحب", "صراف", "atm", "withdraw", "cash") -> Kind.WITHDRAWAL
-            has("استرداد", "مسترد", "عكس", "refund", "reversal") -> Kind.REFUND
+            has("سحب", "صراف", "atm", "withdraw", "cash withdrawal") -> Kind.WITHDRAWAL
             has("سداد", "فاتوره", "فاتورة", "sadad", "bill payment") -> Kind.BILL
             has("ايداع", "إيداع", "راتب", "deposit", "salary", "credited") -> Kind.CREDIT_IN
             else -> Kind.PURCHASE

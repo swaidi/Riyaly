@@ -59,7 +59,7 @@ fun txnRow(a: MainActivity, t: Txn, onChanged: () -> Unit): View {
     val party = when (t.kind) {
         Parser.Kind.TRANSFER_IN -> t.counterparty?.let { c.getString(R.string.from_party, it) }
         Parser.Kind.TRANSFER_OUT -> t.counterparty?.let { c.getString(R.string.to_party, it) }
-        else -> t.merchant
+        else -> t.merchant?.let { a.db.merchant(it)?.displayName ?: it }
     }
     val line2 = listOfNotNull(party, rowDate.format(Date(t.ts))).joinToString(" · ")
     val views = mutableListOf<View>(top, c.muted(line2))
@@ -67,10 +67,20 @@ fun txnRow(a: MainActivity, t: Txn, onChanged: () -> Unit): View {
     if (t.kind != Parser.Kind.PURCHASE) badges.addView(c.badge(Analyzer.kindLabel(c, t.kind), kindColor(t.kind)).apply { withGap(c) })
     if (t.duringTravel) badges.addView(c.badge("✈ " + c.getString(R.string.during_travel), Ui.PALETTE[1]).apply { withGap(c) })
     if (t.isDeclined) badges.addView(c.badge(c.getString(R.string.declined) + (t.declineReason?.let { ": $it" } ?: ""), Ui.ALERT))
+    if (t.refunded > 0.01) badges.addView(c.badge(c.getString(if (t.netSpend < 0.01) R.string.b_refunded else R.string.b_part_refunded), Ui.PALETTE[0]).apply { withGap(c) })
+    if (t.internal) badges.addView(c.badge(c.getString(R.string.b_internal), Ui.GREY).apply { withGap(c) })
+    if (t.incomeType == "salary") badges.addView(c.badge(c.getString(R.string.inc_salary), Ui.PALETTE[0]).apply { withGap(c) })
     if (badges.childCount > 0) views += badges
-    if (t.reasons.isNotEmpty()) {
-        val color = when (t.alert) { AlertState.OK -> Ui.GREY; AlertState.CHECK -> Ui.PALETTE[2]; else -> Ui.ALERT }
-        views += c.badge(Xlsx.statusLabel(c, t) + ": " + t.reasons.joinToString(", ") { Analyzer.label(c, it) }, color)
+    if (!t.note.isNullOrBlank()) views += c.muted("✎ " + t.note, 12f)
+    if (t.reasons.isNotEmpty() && t.risk != Risk.LOW) {
+        val color = when {
+            t.alert == AlertState.OK -> Ui.GREY
+            t.alert == AlertState.CHECK -> Ui.PALETTE[2]
+            t.risk == Risk.MEDIUM -> Ui.PALETTE[2]
+            else -> Ui.ALERT
+        }
+        val level = when (t.risk) { Risk.MEDIUM -> c.getString(R.string.risk_medium); Risk.HIGH -> c.getString(R.string.risk_high); else -> null }
+        views += c.badge(listOfNotNull(level, Xlsx.statusLabel(c, t)).joinToString(" · ") + ": " + t.reasons.joinToString(", ") { Analyzer.label(c, it) }, color)
     }
     return c.card(*views.toTypedArray(), onClick = { TxnDetail.show(a, t, onChanged) })
 }
@@ -107,7 +117,7 @@ class TxnListScreen(a: MainActivity) : Screen(a) {
             val spend = items.filter { it.isSpend }
             val moneyIn = items.filter { it.isMoneyIn }.sumOf { it.amount }
             val out = items.filter { it.isTransferOut }.sumOf { it.amount }
-            val line = c.getString(R.string.list_total, items.size, Fmt.money(spend.sumOf { it.amount }, "SAR")) +
+            val line = c.getString(R.string.list_total, items.size, Fmt.money(spend.sumOf { it.netSpend }, "SAR")) +
                 (if (moneyIn > 0) " · " + c.getString(R.string.list_in, Fmt.money(moneyIn, "SAR")) else "") +
                 (if (out > 0) " · " + c.getString(R.string.list_out, Fmt.money(out, "SAR")) else "")
             listBox.addView(c.muted(line).apply {
@@ -136,20 +146,28 @@ class AlertsScreen(a: MainActivity) : Screen(a) {
         if (open.isEmpty()) {
             root.addView(c.card(c.text(c.getString(R.string.no_alerts), 16f, true), c.muted(c.getString(R.string.no_alerts_body))))
         }
-        for (t in open) {
-            val row = txnRow(a, t) { a.refresh() }
-            root.addView(row)
+        val high = open.filter { it.risk != Risk.MEDIUM }
+        val medium = open.filter { it.risk == Risk.MEDIUM }
+        fun list(items: List<Txn>) = items.forEach { t ->
+            root.addView(txnRow(a, t) { a.refresh() })
             val actions = c.hbox()
             if (t.match == Match.AMBIGUOUS || t.match == Match.UNKNOWN) {
                 actions.addView(c.button(c.getString(R.string.choose_person), outlined = true) { TxnDetail.choosePerson(a, t) { a.refresh() } })
             }
             if (t.alert == AlertState.OPEN || t.alert == AlertState.CHECK) {
-                actions.addView(c.button(c.getString(R.string.btn_confirmed_ok)) { confirmOk(a, t); a.refresh() })
+                actions.addView(c.button(c.getString(R.string.btn_ok_this_time)) { confirmOk(a, t); a.refresh() })
+                if (t.merchant != null) actions.addView(c.textButton(c.getString(R.string.btn_always_ok)) { confirmOk(a, t, always = true); a.refresh() })
                 actions.addView(c.textButton(c.getString(R.string.btn_check_member)) { TxnDetail.checkWithMember(a, t); a.refresh() })
             }
-            root.addView(actions)
+            root.addView(c.scrollH(actions))
         }
-        val past = a.db.txns(System.currentTimeMillis() - 60L * 24 * 3600 * 1000).filter { it.alert == AlertState.OK && it.reasons.isNotEmpty() }
+        if (high.isNotEmpty()) { root.addView(c.section(c.getString(R.string.alerts_high))); list(high) }
+        if (medium.isNotEmpty()) {
+            root.addView(c.section(c.getString(R.string.alerts_medium)))
+            root.addView(c.muted(c.getString(R.string.alerts_medium_hint), 12f))
+            list(medium)
+        }
+        val past = a.db.txns(System.currentTimeMillis() - 60L * 24 * 3600 * 1000).filter { it.alert == AlertState.OK && it.reasons.isNotEmpty() && it.risk != Risk.LOW }
         if (past.isNotEmpty()) {
             root.addView(c.section(c.getString(R.string.recently_confirmed)))
             past.take(30).forEach { root.addView(txnRow(a, it) { a.refresh() }) }
@@ -177,6 +195,14 @@ object TxnDetail {
         row(R.string.x_amount, (if (t.isCredit) "+" else "") + Fmt.money(t.amount, t.currency))
         if (t.origAmount != null) row(R.string.x_original, Fmt.money(t.origAmount, t.origCurrency ?: "SAR"))
         row(R.string.x_fees, t.fees?.let { Fmt.money(it, "SAR") })
+        row(R.string.x_fx_extra, t.fxExtra?.takeIf { it > 0.01 }?.let { Fmt.money(it, "SAR") })
+        row(R.string.x_refunded, t.refunded.takeIf { it > 0.01 }?.let { Fmt.money(it, "SAR") })
+        row(R.string.x_refund_of, t.refundOf?.let { a.db.txn(it) }?.let { o -> listOfNotNull(o.merchant, rowDate.format(Date(o.ts)), Fmt.money(o.amount, o.currency)).joinToString(" · ") })
+        row(R.string.x_income_type, when (t.incomeType) {
+            "salary" -> c.getString(R.string.inc_salary); "person" -> c.getString(R.string.inc_people)
+            "internal" -> c.getString(R.string.b_internal); "other", "not_salary" -> c.getString(R.string.inc_other); else -> null
+        })
+        row(R.string.x_note, t.note)
         row(R.string.x_from_to, when (t.kind) {
             Parser.Kind.TRANSFER_IN -> c.getString(R.string.from_party, listOfNotNull(t.counterparty, t.counterpartyAcct).joinToString(" · "))
             Parser.Kind.TRANSFER_OUT -> c.getString(R.string.to_party, listOfNotNull(t.counterparty, t.counterpartyAcct).joinToString(" · "))
@@ -194,7 +220,11 @@ object TxnDetail {
         row(R.string.x_city, t.city)
         row(R.string.x_distance, t.distanceKm?.let { c.getString(R.string.km_from_home, Math.round(it).toInt()) })
         row(R.string.x_status, if (t.reasons.isEmpty() && t.match != Match.AMBIGUOUS) null else Xlsx.statusLabel(c, t))
-        if (t.reasons.isNotEmpty()) row(R.string.x_alerts, t.reasons.joinToString("\n") { "• " + Analyzer.label(c, it) })
+        if (t.reasons.isNotEmpty()) {
+            row(R.string.x_risk, when (t.risk) { Risk.HIGH -> c.getString(R.string.risk_high); Risk.MEDIUM -> c.getString(R.string.risk_medium); Risk.LOW -> c.getString(R.string.risk_low); else -> null })
+            row(R.string.x_alerts, t.explain?.lines()?.filter { it.isNotBlank() }?.joinToString("\n") { "• $it" }
+                ?: t.reasons.joinToString("\n") { "• " + Analyzer.label(c, it) })
+        }
         box.addView(c.section(c.getString(R.string.x_message)))
         box.addView(c.text(t.body, 14f).apply { setTextIsSelectable(true) })
 
@@ -208,11 +238,29 @@ object TxnDetail {
         }
         actions.setPadding(c.dp(20), 0, c.dp(20), c.dp(8))
         if (t.alert == AlertState.OPEN || t.alert == AlertState.CHECK) {
-            act(R.string.btn_confirmed_ok, false) { confirmOk(a, t) }
+            act(R.string.btn_ok_this_time, false) { confirmOk(a, t) }
+            if (t.merchant != null) act(R.string.btn_always_ok) { confirmOk(a, t, always = true) }
             act(R.string.btn_check_member) { checkWithMember(a, t) }
         }
+        Notifier.callBankIntent(a, t)?.let { call -> if (t.reasons.isNotEmpty() || t.dupOf != null) act(R.string.btn_call_bank) { a.startActivity(call) } }
+        if (t.dupOf != null && (t.dupState == DupState.OPEN || t.dupState == DupState.NORMAL)) {
+            act(R.string.dup_confirm) { a.db.updateTxn(t.copy(dupState = DupState.CONFIRMED)); a.toast(a.getString(R.string.dup_confirmed_toast)) }
+            act(R.string.dup_normal) {
+                a.db.updateTxn(t.copy(dupState = DupState.NORMAL, alert = if (t.alert == AlertState.OPEN) AlertState.OK else t.alert))
+                t.merchant?.let { a.db.setRepeatsNormal(it, true) }
+            }
+        }
         act(if (t.match == Match.IDENTIFIED) R.string.change_person else R.string.choose_person) { choosePerson(a, t, onChanged) }
-        if (t.merchant != null && t.kind == Parser.Kind.PURCHASE) act(R.string.change_category) { chooseCategory(a, t, onChanged) }
+        if (t.merchant != null && t.kind in setOf(Parser.Kind.PURCHASE, Parser.Kind.BILL)) {
+            act(R.string.change_category) { chooseCategory(a, t, onChanged) }
+            act(R.string.rename_merchant) { renameMerchant(a, t, onChanged) }
+        }
+        if (t.kind == Parser.Kind.TRANSFER_OUT && !t.internal) act(R.string.mark_loan) { markLoan(a, t, onChanged) }
+        if (t.kind == Parser.Kind.TRANSFER_IN || t.kind == Parser.Kind.CREDIT_IN) {
+            if (t.incomeType == "salary") act(R.string.not_salary) { a.db.updateTxn(t.copy(incomeType = "not_salary")) }
+            else act(R.string.mark_salary) { a.db.updateTxn(t.copy(incomeType = "salary")) }
+        }
+        act(if (t.note.isNullOrBlank()) R.string.add_note else R.string.edit_note) { editNote(a, t, onChanged) }
         act(R.string.not_txn) {
             c.confirm(c.getString(R.string.not_txn), c.getString(R.string.not_txn_q), c.getString(R.string.remove)) {
                 Processor.markNotTransaction(a, t); onChanged()
@@ -245,6 +293,52 @@ object TxnDetail {
         val cats = Categories.ALL
         a.dialog(a.getString(R.string.category_for, merchant)).setItems(cats.map { Categories.label(a, it) }.toTypedArray()) { _, i ->
             a.db.setMerchantCategory(merchant, cats[i]); onChanged()
+        }.setNegativeButton(R.string.cancel, null).show()
+    }
+
+    private fun editNote(a: MainActivity, t: Txn, onChanged: () -> Unit) {
+        val box = a.vbox(20)
+        val f = a.field(a.getString(if (t.kind == Parser.Kind.WITHDRAWAL) R.string.note_cash_hint else R.string.note_hint), t.note ?: "")
+        box.addView(f.layout)
+        a.dialog(a.getString(R.string.add_note)).setView(box).setPositiveButton(R.string.save) { _, _ ->
+            a.db.updateTxn(t.copy(note = f.value.ifBlank { null })); onChanged()
+        }.setNegativeButton(R.string.cancel, null).show()
+    }
+
+    /** A friendly name for a merchant, or merge it with another spelling of the same place. */
+    private fun renameMerchant(a: MainActivity, t: Txn, onChanged: () -> Unit) {
+        val merchant = t.merchant ?: return
+        val meta = a.db.merchant(merchant)
+        val box = a.vbox(20)
+        val name = a.field(a.getString(R.string.merchant_friendly), meta?.displayName ?: "")
+        val others = a.db.txns(System.currentTimeMillis() - 400 * Insights.DAY).mapNotNull { it.merchant }.distinct()
+            .filter { !it.equals(merchant, true) }.sorted()
+        box.addView(name.layout)
+        box.addView(a.muted(a.getString(R.string.merchant_merge_hint), 12f))
+        var merge: String? = meta?.aliasOf
+        val mergeBtn = a.textButton(merge?.let { a.getString(R.string.merchant_merged_with, it) } ?: a.getString(R.string.merchant_merge)) {}
+        mergeBtn.setOnClickListener {
+            a.dialog(a.getString(R.string.merchant_merge)).setItems((listOf(a.getString(R.string.none)) + others).toTypedArray()) { _, i ->
+                merge = if (i == 0) null else others[i - 1]
+                mergeBtn.text = merge?.let { a.getString(R.string.merchant_merged_with, it) } ?: a.getString(R.string.merchant_merge)
+            }.show()
+        }
+        box.addView(mergeBtn)
+        a.dialog(merchant).setView(box).setPositiveButton(R.string.save) { _, _ ->
+            a.db.setMerchantName(merchant, name.value.ifBlank { null }, merge); onChanged()
+        }.setNegativeButton(R.string.cancel, null).show()
+    }
+
+    /** "Who owes me": a transfer out recorded as a loan, with an optional due date. */
+    private fun markLoan(a: MainActivity, t: Txn, onChanged: () -> Unit) {
+        val box = a.vbox(20)
+        val who = a.field(a.getString(R.string.loan_who), t.counterparty ?: "")
+        val days = a.field(a.getString(R.string.loan_due_days), "", android.text.InputType.TYPE_CLASS_NUMBER, a.getString(R.string.loan_due_helper))
+        box.addView(who.layout); box.addView(days.layout)
+        a.dialog(a.getString(R.string.mark_loan)).setView(box).setPositiveButton(R.string.save) { _, _ ->
+            val due = days.value.toIntOrNull()?.takeIf { it > 0 }?.let { System.currentTimeMillis() + it * Insights.DAY }
+            a.db.saveLoan(Loan(0, t.id, who.value.ifBlank { t.counterparty ?: "?" }, t.counterpartyAcct, t.amount, 0.0, due, System.currentTimeMillis()))
+            a.toast(a.getString(R.string.loan_saved)); onChanged()
         }.setNegativeButton(R.string.cancel, null).show()
     }
 

@@ -16,44 +16,58 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
     override val titleRes = R.string.tab_settings
     private var reportMonth: Pair<Int, Int>? = null
 
+    /** The open group page, or null for the list of groups. */
+    var page: String? = null
+
+    private val groups = listOf(
+        "alerts" to (R.string.g_alerts to R.string.g_alerts_line),
+        "plan" to (R.string.g_plan to R.string.g_plan_line),
+        "location" to (R.string.s_location to R.string.g_location_line),
+        "banks" to (R.string.s_banks to R.string.g_banks_line),
+        "backup" to (R.string.g_backup to R.string.g_backup_line),
+        "updates" to (R.string.s_updates to R.string.g_updates_line),
+        "advanced" to (R.string.g_advanced to R.string.g_advanced_line),
+    )
+
+    override fun titleText(): String? = groups.firstOrNull { it.first == page }?.let { a.getString(it.second.first) }
+
     override fun build(): View {
         val c = a
-        val p = a.prefs
         val root = c.vbox(16)
-
-        // ---------- Banks ----------
-        root.addView(c.section(c.getString(R.string.s_banks)))
-        root.addView(c.muted(c.getString(R.string.s_banks_intro)))
-        for (b in a.db.banks()) {
-            root.addView(c.card(
-                c.text(b.name, 16f, true),
-                c.muted(c.getString(R.string.senders_line, b.senders.joinToString(", "))),
-                onClick = { editBank(b) },
-            ))
+        when (page) {
+            null -> {
+                for ((key, res) in groups) {
+                    root.addView(c.card(c.text(c.getString(res.first), 16f, true), c.muted(c.getString(res.second)), onClick = { page = key; a.refresh() }))
+                }
+                root.addView(c.section(c.getString(R.string.s_language)))
+                val lang = c.chips()
+                val curTag = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                listOf("" to R.string.lang_system, "en" to R.string.lang_en, "ar" to R.string.lang_ar).forEach { (tag, label) ->
+                    lang.addView(c.chip(c.getString(label), curTag == tag) {
+                        AppCompatDelegate.setApplicationLocales(if (tag.isEmpty()) LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(tag))
+                    })
+                }
+                root.addView(lang)
+                root.addView(c.muted(c.getString(R.string.about, BuildConfig.VERSION_NAME), 12f).apply { setPadding(0, c.dp(24), 0, c.dp(24)) })
+            }
+            "alerts" -> alertsPage(root)
+            "plan" -> planPage(root)
+            "location" -> locationPage(root)
+            "banks" -> banksPage(root)
+            "backup" -> backupPage(root)
+            "updates" -> updatesPage(root)
+            "advanced" -> advancedPage(root)
         }
-        root.addView(c.button(c.getString(R.string.add_bank), outlined = true) { editBank(null) })
+        return c.scroll(root)
+    }
 
-        // ---------- History ----------
-        root.addView(c.section(c.getString(R.string.history_title)))
-        root.addView(c.card(c.muted(c.getString(R.string.history_body)), c.button(c.getString(R.string.import_inbox), outlined = true) { importInbox() }))
-
-        // ---------- Ignored messages ----------
-        root.addView(c.section(c.getString(R.string.s_ignored)))
-        val ignored = c.vbox()
-        ignored.addView(c.muted(c.getString(R.string.s_ignored_intro), 12f))
-        val patterns = p.ignoredPatterns
-        if (patterns.isEmpty()) ignored.addView(c.muted(c.getString(R.string.ignored_none)))
-        patterns.forEach { pat ->
-            val row = c.hbox()
-            row.add(c.text(pat.take(140), 14f), weight = 1f)
-            row.addView(c.textButton(c.getString(R.string.remove)) { p.ignoredPatterns = p.ignoredPatterns - pat; a.refresh() })
-            ignored.addView(row)
-        }
-        root.addView(c.card(ignored))
-
+    private fun alertsPage(root: android.widget.LinearLayout) {
+        val c = a
+        val p = a.prefs
         // ---------- Notifications ----------
         root.addView(c.section(c.getString(R.string.s_notifications)))
         root.addView(c.switchRow(c.getString(R.string.notify_every), p.notifyEvery) { p.notifyEvery = it })
+        root.addView(c.muted(c.getString(R.string.risk_explain), 12f))
 
         // ---------- Alert rules ----------
         root.addView(c.section(c.getString(R.string.s_rules)))
@@ -67,7 +81,8 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         val far = c.field(c.getString(R.string.far_km), "${p.farKm}", InputType.TYPE_CLASS_NUMBER)
         val transfer = c.field(c.getString(R.string.transfer_limit), "${p.transferLimit}", InputType.TYPE_CLASS_NUMBER)
         val quiet = c.hbox().apply { add(qs.layout, weight = 1f); add(c.vbox(), width = c.dp(10)); add(qe.layout, weight = 1f) }
-        root.addView(c.card(c.muted(c.getString(R.string.general_limits_hint), 12f), large.layout, transfer.layout, quiet, far.layout, c.button(c.getString(R.string.save)) {
+        root.addView(c.card(c.muted(c.getString(R.string.general_limits_hint), 12f), large.layout, transfer.layout, quiet,
+            c.switchRow(c.getString(R.string.learned_hours), p.learnedHours) { p.learnedHours = it }, far.layout, c.button(c.getString(R.string.save)) {
             large.value.toIntOrNull()?.let { p.largeAmount = it }
             transfer.value.toIntOrNull()?.let { p.transferLimit = it }
             qs.value.toIntOrNull()?.takeIf { it in 0..23 }?.let { p.quietStart = it }
@@ -91,6 +106,22 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             if (kw.value.isNotEmpty()) { a.db.addWatch(kw.value); a.refresh() }
         }))
 
+    }
+
+    private fun planPage(root: android.widget.LinearLayout) {
+        val c = a
+        val p = a.prefs
+        root.addView(c.muted(c.getString(R.string.g_plan_intro), 12f))
+        root.addView(c.button(c.getString(R.string.open_plan)) { a.plan().openSub("budgets") })
+        root.addView(c.section(c.getString(R.string.s_summaries)))
+        listOf("payday" to R.string.sum_payday, "month" to R.string.sum_month, "week" to R.string.sum_week, "upcoming" to R.string.sum_upcoming).forEach { (k, r) ->
+            root.addView(c.switchRow(c.getString(r), p.summaryOn(k)) { p.setSummary(k, it) })
+        }
+    }
+
+    private fun locationPage(root: android.widget.LinearLayout) {
+        val c = a
+        val p = a.prefs
         // ---------- Home & location ----------
         root.addView(c.section(c.getString(R.string.s_location)))
         val homeLine = if (p.homeLat != null) p.homeLabel.ifEmpty { "%.4f, %.4f".format(p.homeLat, p.homeLon) } else c.getString(R.string.home_not_set)
@@ -105,6 +136,35 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             c.muted(c.getString(R.string.lookup_note), 12f),
         ))
 
+    }
+
+    private fun banksPage(root: android.widget.LinearLayout) {
+        val c = a
+        val p = a.prefs
+        // ---------- Banks ----------
+        root.addView(c.section(c.getString(R.string.s_banks)))
+        root.addView(c.muted(c.getString(R.string.s_banks_intro)))
+        for (b in a.db.banks()) {
+            root.addView(c.card(
+                c.text(b.name, 16f, true),
+                c.muted(c.getString(R.string.senders_line, b.senders.joinToString(", "))),
+                onClick = { editBank(b) },
+            ))
+        }
+        root.addView(c.button(c.getString(R.string.add_bank), outlined = true) { editBank(null) })
+
+        // ---------- History ----------
+        root.addView(c.section(c.getString(R.string.history_title)))
+        root.addView(c.card(c.muted(c.getString(R.string.history_body)), c.button(c.getString(R.string.import_inbox), outlined = true) { importInbox() }))
+
+        // ---------- History ----------
+        root.addView(c.section(c.getString(R.string.history_title)))
+        root.addView(c.card(c.muted(c.getString(R.string.history_body)), c.button(c.getString(R.string.import_inbox), outlined = true) { importInbox() }))
+    }
+
+    private fun backupPage(root: android.widget.LinearLayout) {
+        val c = a
+        val p = a.prefs
         // ---------- Backup ----------
         root.addView(c.section(c.getString(R.string.s_backup)))
         val folder = p.backupTreeUri?.let { Uri.parse(it).lastPathSegment } ?: c.getString(R.string.not_chosen)
@@ -130,6 +190,11 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         root.addView(c.section(c.getString(R.string.s_report)))
         root.addView(c.card(c.muted(c.getString(R.string.report_intro)), c.button(c.getString(R.string.export_excel)) { chooseMonth() }))
 
+    }
+
+    private fun updatesPage(root: android.widget.LinearLayout) {
+        val c = a
+        val p = a.prefs
         // ---------- App updates ----------
         root.addView(c.section(c.getString(R.string.s_updates)))
         val tokenSet = Updater.token(c) != null
@@ -142,60 +207,56 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
             c.textButton(c.getString(R.string.save_token)) {
                 if (tokenField.value.isNotEmpty()) { Updater.saveToken(c, tokenField.value); c.toast(c.getString(R.string.saved)); a.refresh() }
             },
-            c.button(c.getString(R.string.check_updates)) { checkUpdates() },
+            c.button(c.getString(R.string.check_updates)) { a.updates.checkUpdates() },
         ))
 
-        // ---------- Language ----------
-        root.addView(c.section(c.getString(R.string.s_language)))
-        val lang = c.chips()
-        val curTag = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-        listOf("" to R.string.lang_system, "en" to R.string.lang_en, "ar" to R.string.lang_ar).forEach { (tag, label) ->
-            lang.addView(c.chip(c.getString(label), curTag == tag) {
-                AppCompatDelegate.setApplicationLocales(if (tag.isEmpty()) LocaleListCompat.getEmptyLocaleList() else LocaleListCompat.forLanguageTags(tag))
-            })
-        }
-        root.addView(lang)
-
-        root.addView(c.muted(c.getString(R.string.about, BuildConfig.VERSION_NAME), 12f).apply { setPadding(0, c.dp(24), 0, c.dp(24)) })
-        return c.scroll(root)
     }
 
-    // ---------- updates ----------
-    private fun checkUpdates() {
+    private fun advancedPage(root: android.widget.LinearLayout) {
         val c = a
-        val token = Updater.token(c)
-        c.toast(c.getString(R.string.checking_updates))
-        Thread {
-            val result = try { Result.success(Updater.latest(token)) } catch (e: Exception) { Result.failure(e) }
-            a.runOnUiThread {
-                val err = result.exceptionOrNull()
-                val r = result.getOrNull()
-                when {
-                    err is Updater.HttpError && (err.code == 401 || err.code == 403) -> c.toast(c.getString(R.string.update_bad_token))
-                    err != null -> c.toast(c.getString(R.string.no_internet))
-                    r == null || r.versionCode <= BuildConfig.VERSION_CODE -> c.toast(c.getString(R.string.up_to_date))
-                    else -> c.confirm(c.getString(R.string.update_available, r.tag), c.getString(R.string.update_install_q), c.getString(R.string.update_install)) {
-                        downloadAndInstall(token, r)
-                    }
-                }
-            }
-        }.start()
+        val p = a.prefs
+        // ---------- Ignored messages ----------
+        root.addView(c.section(c.getString(R.string.s_ignored)))
+        val ignored = c.vbox()
+        ignored.addView(c.muted(c.getString(R.string.s_ignored_intro), 12f))
+        val patterns = p.ignoredPatterns
+        if (patterns.isEmpty()) ignored.addView(c.muted(c.getString(R.string.ignored_none)))
+        patterns.forEach { pat ->
+            val row = c.hbox()
+            row.add(c.text(pat.take(140), 14f), weight = 1f)
+            row.addView(c.textButton(c.getString(R.string.remove)) { p.ignoredPatterns = p.ignoredPatterns - pat; a.refresh() })
+            ignored.addView(row)
+        }
+        root.addView(c.card(ignored))
+
+        // ---------- Issue log ----------
+        root.addView(c.section(c.getString(R.string.log_title)))
+        val logFile = AppLog.file(c)
+        root.addView(c.card(
+            c.muted(c.getString(R.string.log_intro), 12f),
+            c.muted(c.getString(R.string.log_size, (logFile.length() / 1024).toInt()), 12f),
+            c.button(c.getString(R.string.log_view), outlined = true) { viewLog() },
+            c.button(c.getString(R.string.log_share), outlined = true) { a.feedback.show() },
+            c.textButton(c.getString(R.string.log_clear)) { AppLog.clear(c); a.refresh() },
+        ))
+        // ---------- Exchange rates & reading ----------
+        root.addView(c.section(c.getString(R.string.s_reading)))
+        root.addView(c.switchRow(c.getString(R.string.fx_switch), p.fxEnabled) { p.fxEnabled = it })
+        root.addView(c.muted(c.getString(R.string.fx_note), 12f))
+        root.addView(c.button(c.getString(R.string.reread_messages), outlined = true) {
+            c.toast(c.getString(R.string.rereading))
+            Thread {
+                try { Processor.reparseAll(c) } catch (e: Exception) { AppLog.e("re-read messages", e) }
+                a.runOnUiThread { c.toast(c.getString(R.string.reread_done)); a.refresh() }
+            }.start()
+        })
     }
 
-    private fun downloadAndInstall(token: String?, r: Updater.Release) {
+    private fun viewLog() {
         val c = a
-        if (!c.packageManager.canRequestPackageInstalls()) {
-            c.toast(c.getString(R.string.update_allow_installs))
-            c.startActivity(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${c.packageName}")))
-            return
-        }
-        c.toast(c.getString(R.string.downloading_update))
-        Thread {
-            val file = try { Updater.download(c, token, r) { } } catch (e: Exception) { null }
-            a.runOnUiThread {
-                if (file == null) c.toast(c.getString(R.string.update_failed)) else Updater.install(c, file)
-            }
-        }.start()
+        val text = AppLog.read(c).takeLast(30_000).ifBlank { c.getString(R.string.log_empty) }
+        val tv = c.text(text, 11f).apply { setTextIsSelectable(true); typeface = android.graphics.Typeface.MONOSPACE; setPadding(c.dp(16), c.dp(8), c.dp(16), c.dp(8)) }
+        c.dialog(c.getString(R.string.log_title)).setView(c.scroll(tv)).setPositiveButton(R.string.close, null).show()
     }
 
     // ---------- banks ----------
@@ -207,11 +268,12 @@ class SettingsScreen(a: MainActivity) : Screen(a) {
         val bal = c.field(c.getString(R.string.bank_balance_words), (b?.balanceWords ?: Parser.DEFAULT_BALANCE_WORDS).joinToString(", "))
         val mer = c.field(c.getString(R.string.bank_merchant_words), (b?.merchantPrefixes ?: Parser.DEFAULT_MERCHANT_PREFIXES).joinToString(", "),
             helper = c.getString(R.string.bank_merchant_helper))
-        listOf(name, senders, bal, mer).forEach { box.addView(it.layout) }
+        val phone = c.field(c.getString(R.string.bank_phone), b?.phone ?: "", InputType.TYPE_CLASS_PHONE, c.getString(R.string.bank_phone_helper))
+        listOf(name, senders, phone, bal, mer).forEach { box.addView(it.layout) }
         val d = c.dialog(c.getString(if (b == null) R.string.add_bank else R.string.edit_bank)).setView(c.scroll(box))
             .setPositiveButton(R.string.save) { _, _ ->
                 if (senders.value.isEmpty()) return@setPositiveButton
-                a.db.saveBank(Bank(b?.id ?: 0, name.value.ifEmpty { senders.value }, split(senders.value), split(bal.value), split(mer.value)))
+                a.db.saveBank(Bank(b?.id ?: 0, name.value.ifEmpty { senders.value }, split(senders.value), split(bal.value), split(mer.value), phone.value.ifBlank { null }))
                 a.refresh()
             }
             .setNegativeButton(R.string.cancel, null)
