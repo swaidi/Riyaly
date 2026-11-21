@@ -1,6 +1,6 @@
-# Riyaly License 1.0
+# Riyaly License 1.1
 
-Copyright (c) 2026 swaidi. All rights reserved, except as granted below.
+Copyright (c) 2026 Swaidi (trading as A.T.Grep). All rights reserved, except as granted below.
 
 ## 1. Definitions
 
@@ -37,30 +37,54 @@ fees and a separate agreement:
 
 Approval is valid only if it is given in writing (an email counts) by the copyright holder.
 
-## 4. How to ask for approval
+## 4. Copies and forks
+
+Keeping a copy of the source code, including a fork on GitHub, to read, learn from or test for
+Personal Use is allowed. Building, publishing or distributing an app or program from a changed
+copy needs written approval under Section 3.
+
+## 5. Contributions
+
+Anyone who sends a change, code or suggestion to the Software (for example, through a GitHub pull
+request or issue) confirms that he or she wrote it or has the right to send it, and grants the
+copyright holder a permanent, worldwide, royalty-free right to use, change, license and sell it,
+as part of the Software or otherwise. Contributors keep the right to use their own contribution
+elsewhere, and are credited by name in the README unless they ask not to be. Contributing is
+voluntary.
+
+## 6. Changes made by approved Organizations
+
+Ownership and use of changes that an Organization makes with approval are set in the separate
+written agreement with that Organization. Without such an agreement, no rights are granted beyond
+this license.
+
+## 7. How to ask for approval
 
 - GitHub: open an issue at <https://github.com/swaidi/Riyaly/issues>
 - Email: dev.oasis006@passmail.net
 
-## 5. Name and icon
+## 8. Name and icon
 
-This license does not grant any right to use the name "Riyaly", "ريالي" or the app icon, except to
-refer to the Software truthfully.
+This license does not grant any right to use the name "Riyaly", "ريالي", "A.T.Grep" or the app icon,
+except to refer to the Software truthfully.
 
-## 6. Ending of the license
+## 9. Earlier versions
+
+This license replaces any earlier version of it for all versions of the Software.
+
+## 10. Ending of the license
 
 If you break any term of this license, your rights under it end automatically. They are restored
 if you correct the breach within 30 days of being notified, unless the copyright holder decides
 otherwise in writing.
 
-## 7. No warranty and no liability
+## 11. No warranty and no liability
 
 The Software is provided "as is", without any warranty of any kind, express or implied, including
-any warranty of accuracy, fitness for a particular purpose or non-infringement. The Software reads
-bank messages and may misread them or miss transactions; always check your bank's official
-records. To the fullest extent permitted by law, the copyright holder is not liable for any loss
-or damage of any kind arising from the use of, or inability to use, the Software.
+any warranty of accuracy, fitness for a particular purpose or non-infringement. The Software reads bank messages and may misread them or miss transactions; always check your bank's official records. To the
+fullest extent permitted by law, the copyright holder is not liable for any loss or damage of any
+kind arising from the use of, or inability to use, the Software.
 
-## 8. Other rights
+## 12. Other rights
 
 All rights not expressly granted in this license are reserved by the copyright holder.

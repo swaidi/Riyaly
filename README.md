@@ -58,9 +58,11 @@ message is read wrongly, paste the message with **names, amounts and card digits
 
 ## License
 
+Copyright © 2026 Swaidi (trading as A.T.Grep).
+
 Free for **individuals** for personal, non-commercial use. Use by any **organization** (company,
-small business, government body, charity or school), commercial use, changed versions and reuse of
-the code need written approval and may involve fees. See [LICENSE.md](LICENSE.md).
+small business, government body, charity or school), commercial use, distributing changed versions
+and reusing the code need written approval and may involve fees. See [LICENSE.md](LICENSE.md).
 To ask, open an [issue](https://github.com/swaidi/Riyaly/issues) or email dev.oasis006@passmail.net.
 
 ## Build
